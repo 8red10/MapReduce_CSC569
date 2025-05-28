@@ -2,14 +2,15 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
-/* --------------------------------------------------------------------------- */
-/* AppendEntryMessage */
+/* message - leader sends as a heartbeat to assert leadership to followers and for followers to add to their logs */
 type AppendEntryMessage struct {
 	TargetID      int          // id of node to send message to
 	SourceID      int          // id of leader sending the AppendEntry proposal
@@ -19,8 +20,7 @@ type AppendEntryMessage struct {
 	NewEntry      log.LogEntry // entry being proposed to be committed
 }
 
-/* --------------------------------------------------------------------------- */
-/* AppendEntryMessages */
+/* server struct - holds all append entry messages for followers to read */
 type AppendEntryMessages struct {
 	mu      *sync.RWMutex              // enables concurrent thread operations
 	Term    int                        // current term number
@@ -105,4 +105,39 @@ func (ae *AppendEntryMessages) Listen(sourceID int, reply *AppendEntryMessage) e
 
 	/* Indicate success */
 	return nil
+}
+
+/*
+Send leader heartbeat to target node
+*/
+func SendAppendEntryMessage(server *rpc.Client, msg AppendEntryMessage) {
+	var appendAdded bool
+	if err := server.Call("AppendEntryMessages.Add", msg, &appendAdded); err != nil {
+		fmt.Println("ERROR: AppendEntryMessages.Add():", err)
+	} else if appendAdded {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: AppendEntryMessage sent to node %d\n", msg.TargetID)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: AppendEntryMessage NOT sent to node %d\n", msg.TargetID)
+		} else {
+			fmt.Printf("AppendEntryMessage NOT sent to node %d during term %d\n", msg.TargetID, msg.Term)
+		}
+	}
+}
+
+/*
+Check server for a leader heartbeat addressed to self node and return it.
+Part of follower, candidate, leader roles.
+server - RPC connection to server.
+sourceID - self node ID.
+*/
+func ReadAppendEntryMessage(server *rpc.Client, sourceID int) AppendEntryMessage {
+
+	aem := AppendEntryMessage{Exists: false}
+	if err := server.Call("AppendEntryMessages.Listen", sourceID, &aem); err != nil {
+		fmt.Println("ERROR: AppendEntryMessages.Listen():", err)
+	}
+	return aem
 }

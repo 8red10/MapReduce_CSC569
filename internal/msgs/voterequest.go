@@ -2,6 +2,8 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/node"
@@ -103,4 +105,37 @@ func (vr *VoteRequests) Listen(sourceID int, reply *VoteRequest) error {
 
 	/* Inidicate success */
 	return nil
+}
+
+/*
+Sends a vote request to target node
+*/
+func SendVoteRequest(server *rpc.Client, msg VoteRequest) {
+	var requestAdded bool
+	if err := server.Call("VoteRequests.Add", msg, &requestAdded); err != nil {
+		fmt.Println("ERROR: VoteRequests.Add():", err)
+	} else if requestAdded {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: VoteRequest sent from node %d to node %d\n", msg.SourceID, msg.TargetID)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: VoteRequest NOT sent from node %d to node %d\n", msg.SourceID, msg.TargetID)
+		}
+	}
+}
+
+/*
+Check server for a vote request addressed to self node and return it.
+Part of follower, candidate, leader roles.
+server - RPC connection to server.
+sourceID - self node ID.
+*/
+func ReadVoteRequest(server *rpc.Client, sourceID int) VoteRequest {
+
+	vr := VoteRequest{Exists: false}
+	if err := server.Call("VoteRequests.Listen", sourceID, &vr); err != nil {
+		fmt.Println("ERROR: VoteRequests.Listen():", err)
+	}
+	return vr
 }

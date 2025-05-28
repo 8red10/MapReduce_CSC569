@@ -2,6 +2,8 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/node"
@@ -98,4 +100,43 @@ func (vc *VoteCounter) Listen(payload VoteMessage, reply *int) error {
 
 	/* Indicate success */
 	return nil
+}
+
+/*
+Send vote message to target node
+*/
+func SendVoteMessage(server *rpc.Client, msg VoteMessage) {
+	var voteAdded bool
+	if err := server.Call("VoteCounter.Add", msg, &voteAdded); err != nil {
+		fmt.Println("ERROR: VoteCounter.Add():", err)
+	} else if voteAdded {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: VoteMessage sent to node %d during term %d\n", msg.TargetID, msg.Term)
+		} else {
+			fmt.Printf("VoteMessage sent to node %d during term %d\n", msg.TargetID, msg.Term)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: VoteMessage NOT sent to node %d\n", msg.TargetID)
+		} else {
+			fmt.Printf("VoteMessage NOT sent to node %d during term %d\n", msg.TargetID, msg.Term)
+		}
+	}
+}
+
+/*
+Count votes on server addressed to self node and return count.
+Part of candidate role.
+server - RPC connection to server.
+sourceID - self node ID.
+sourceTerm - self node term.
+*/
+func CountVotes(server *rpc.Client, sourceID int, sourceTerm int) int {
+
+	vm := VoteMessage{TargetID: sourceID, Term: sourceTerm}
+	count := 0
+	if err := server.Call("VoteCounter.Listen", vm, &count); err != nil {
+		fmt.Println("ERROR: VoteCounter.Listen():", err)
+	}
+	return count
 }

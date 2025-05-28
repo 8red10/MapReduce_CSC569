@@ -2,6 +2,8 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/log"
@@ -73,4 +75,39 @@ func (e *EntireLogMessages) Listen(sourceID int, reply *EntireLogMessage) error 
 	}
 
 	return nil
+}
+
+/*
+Send whole log to follower to help reconcile log
+*/
+func SendEntireLogMessage(server *rpc.Client, msg EntireLogMessage) {
+	var added bool
+	if err := server.Call("EntireLogMessages.Add", msg, &added); err != nil {
+		fmt.Println("ERROR: EntireLogMessages.Add():", err)
+	} else if added {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: EntireLogMessage sent to node %d\n", msg.TargetID)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: EntireLogMessage NOT sent to node %d\n", msg.TargetID)
+		} else {
+			fmt.Printf("EntireLogMessage NOT sent to node %d\n", msg.TargetID)
+		}
+	}
+}
+
+/*
+Check server for entire log messsage addressed to self node and return it.
+Part of follower role.
+server = RPC server connection.
+sourceID = self node ID.
+*/
+func ReadEntireLogMessage(server *rpc.Client, sourceID int) EntireLogMessage {
+
+	elm := EntireLogMessage{Exists: false}
+	if err := server.Call("EntireLogMessages.Listen", sourceID, &elm); err != nil {
+		fmt.Println("ERROR: EntireLogMessages.Listen():", err)
+	}
+	return elm
 }

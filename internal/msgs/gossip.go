@@ -2,6 +2,8 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
@@ -9,8 +11,9 @@ import (
 )
 
 const (
-	T_FAIL    = 12 // in seconds, should be = 3 * Y_TIME
-	T_CLEANUP = 6  // in seconds, should be = T_FAIL
+	T_FAIL         = 12 // in seconds, should be = 3 * Y_TIME
+	T_CLEANUP      = 6  // in seconds, should be = T_FAIL
+	DEBUG_MESSAGES = false
 )
 
 /* GossipMessage struct represents a new gossip message request to a client (request = member list) */
@@ -143,4 +146,42 @@ func combineTables(table1 *memlist.MemberList, table2 *memlist.MemberList) *meml
 
 	/* Return the updated source node table */
 	return table1
+}
+
+/*
+Sends gossip message to target node
+*/
+func SendGossipMessage(server *rpc.Client, msg GossipMessage) {
+	var tablesCombined bool
+	if err := server.Call("Requests.Add", msg, &tablesCombined); err != nil {
+		fmt.Println("ERROR: Requests.Add()", err)
+	} else if tablesCombined {
+		if DEBUG_MESSAGES {
+			fmt.Printf("Success: memberlist sent to ID: %d\n", msg.TargetID)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("Bypassed: node %d memberlist not initialized in Requests\n", msg.TargetID)
+		}
+	}
+}
+
+/*
+Read the gossip message from the server.
+Part of client updateSelfInfo operation.
+In actuality, gets the most updated version of this node's member list from the server.
+server - RPC connection to server.
+sourceID - self node id.
+memberlist - current member list to return on error
+*/
+func ReadGossipMessage(server *rpc.Client, sourceID int, memberlist memlist.MemberList) memlist.MemberList {
+
+	/* Retrieve most up to date version of self member list */
+	table := memlist.NewMemberList()
+	if err := server.Call("Requests.Listen", sourceID, table); err != nil {
+		fmt.Println("ERROR: Requests.Listen():", err)
+		return memberlist // if error, then return initial memberlist
+	}
+	/* Return member list updated with other nodes' messages */
+	return *table
 }

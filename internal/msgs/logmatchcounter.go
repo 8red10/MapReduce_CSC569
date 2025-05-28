@@ -2,6 +2,8 @@ package msgs
 
 import (
 	"errors"
+	"fmt"
+	"net/rpc"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/log"
@@ -123,4 +125,41 @@ func (lm *LogMatchCounter) Listen(payload LogMatchMessage, reply *int) error {
 	}
 
 	return nil
+}
+
+/*
+Send follower approval to leader saying log matches
+*/
+func SendLogMatchMessage(server *rpc.Client, msg LogMatchMessage) {
+	var added bool
+	if err := server.Call("LogMatchCounter.Add", msg, &added); err != nil {
+		fmt.Println("ERROR: LogMatchCounter.Add():", err)
+	} else if added {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: LogMatchMessage sent to node %d\n", msg.TargetID)
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Printf("OK: LogMatchMessage NOT sent to node %d\n", msg.TargetID)
+		} else {
+			fmt.Printf("LogMatchMessage NOT sent to node %d\n", msg.TargetID)
+		}
+	}
+}
+
+/*
+Count approval for the proposed log entry to append.
+Part of leader role.
+server = RPC connection to server.
+sourceID = self node ID.
+entry = entry to count approval for.
+*/
+func CountLogMatches(server *rpc.Client, sourceID int, entry log.LogEntry) int {
+
+	lmm := LogMatchMessage{SourceID: sourceID, LatestEntry: entry}
+	count := 0
+	if err := server.Call("LogMatchCounter.Listen", lmm, &count); err != nil {
+		fmt.Println("ERROR: LogMatchCounter.Listen():", err)
+	}
+	return count
 }

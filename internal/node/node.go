@@ -43,11 +43,6 @@ func CalcTime() int64 {
 	return now.Unix() - ref.Unix()
 }
 
-/* Generate random crash time */
-func (n Node) CrashTime(min int, max int) int {
-	return rand.Intn(max-min) + min
-}
-
 /* Generates two random neighbor IDs for the node associated with the input ID */
 func (n Node) InitializeNeighbors(id int) [2]int {
 	neighbor1 := RandInt()

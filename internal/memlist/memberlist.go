@@ -2,6 +2,7 @@ package memlist
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/8red10/MapReduce_CSC569/internal/node"
@@ -76,4 +77,19 @@ func (m *MemberList) Get(payload int, reply *node.Node) error {
 
 	/* Indicate success */
 	return nil
+}
+
+/* Print this node's current member list */
+func PrintMemberList(m MemberList, self_node *node.Node) {
+	fmt.Println("")
+	fmt.Printf("Member List for Node %d at local time %d\n", self_node.ID, self_node.Time)
+	fmt.Println("------------------------------------------")
+	for _, val := range m.Members {
+		status := "is Alive"
+		if !val.Alive {
+			status = "is Dead"
+		}
+		fmt.Printf("Node %d has hb %d, time %d and %s\n", val.ID, val.Hbcounter, val.Time, status)
+	}
+	fmt.Println("")
 }

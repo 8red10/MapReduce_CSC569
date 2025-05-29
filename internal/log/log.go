@@ -44,6 +44,7 @@ func NewLog() *Log {
 		Waitingentry: LogEntry{
 			Exists: false,
 			Index:  -1,
+			Term:   -1,
 		},
 	}
 }
@@ -53,6 +54,7 @@ func (l *Log) GetLastCommitted() LogEntry {
 	last := LogEntry{
 		Exists: false,
 		Index:  -1,
+		Term:   -1,
 	}
 
 	l.mu.RLock()
@@ -63,6 +65,14 @@ func (l *Log) GetLastCommitted() LogEntry {
 	}
 
 	return last
+}
+
+/* for use in send AEM */
+func (l *Log) GetWaitingEntry() LogEntry {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	return l.Waitingentry
 }
 
 /* for use in count log matches */
@@ -88,7 +98,7 @@ func (l *Log) CommitWaitingEntry() error {
 	return nil
 }
 
-/* for use wherever trying to add to log */
+/* for use wherever trying to add to log - need to have good term input */
 func (l *Log) StartAppendProcess(entry LogEntry) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -211,13 +221,6 @@ func (l *Log) GetCommittedCopy() []LogEntry {
 // 	defer l.mu.RUnlock()
 
 // 	return l.Waitingentry.Exists
-// }
-
-// func (l *Log) GetWaitingEntry() LogEntry {
-// 	l.mu.RLock()
-// 	defer l.mu.RUnlock()
-
-// 	return l.Waitingentry
 // }
 
 // func (l *Log) UpdateWaitingEntry(entry LogEntry) error {

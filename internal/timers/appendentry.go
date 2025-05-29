@@ -5,6 +5,7 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -95,7 +96,14 @@ func SendAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	for i := range node.NUM_NODES {
 		id := i + 1
 		if id != selfNode.ID {
-			aem := msgs.AppendEntryMessage{TargetID: id, Term: selfNode.GetTerm(), Exists: true} // need exists
+			aem := msgs.AppendEntryMessage{
+				TargetID:      id,
+				SourceID:      selfNode.ID,
+				Term:          selfNode.GetTerm(),
+				Exists:        true, // need exists
+				PreviousEntry: log.Selflog.GetLastCommitted(),
+				NewEntry:      log.Selflog.GetWaitingEntry(),
+			}
 			go msgs.SendAppendEntryMessage(server, aem)
 		}
 	}

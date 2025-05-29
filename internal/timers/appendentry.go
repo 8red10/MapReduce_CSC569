@@ -71,11 +71,13 @@ func CheckAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) bo
 				ResetElectionTimer()
 				selfNode.UpdateTermTo(msg.Term)
 				receivedGoodAEM = true
+				sendResponsetoAEM(server, msg)
 
 			} else if msg.Term == selfNode.GetTerm() {
 				/* Case 3b: leader w same term, stay follower, reset election timer */
 				ResetElectionTimer()
 				receivedGoodAEM = true
+				sendResponsetoAEM(server, msg)
 			}
 			/* Case 3c: leader term < self term, do nothing and leader should eventually become follower */
 		}
@@ -88,6 +90,83 @@ func CheckAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) bo
 
 	return receivedGoodAEM
 }
+
+/* compares entries in received aem with self log - send appropriate response */
+func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
+	leaderPrevEntry := aem.PreviousEntry
+	leaderNewEntry := aem.NewEntry
+	followerPrevEntry := log.Selflog.GetLastCommitted()
+
+	if leaderNewEntry.Exists && !followerPrevEntry.MatchesAndBothExist(leaderNewEntry) {
+		/* Case 1: leader trying to update log and follower not appended new entry yet */
+		if followerPrevEntry.MatchesAndBothExist(leaderPrevEntry) {
+			/* Case 1a: follower log up to date */
+			indicateLogMatch(server, aem)
+		} else if !followerPrevEntry.Exists && !leaderPrevEntry.Exists {
+			/* Case 1b: follower and leader don't have anything committed yet */
+			indicateLogMatch(server, aem)
+		} else {
+			/* Case 1c: log mismatch */
+			indicateLogError(server, aem)
+		}
+	}
+}
+
+/* sends log match message and adds new entry to follower log */
+func indicateLogMatch(server *rpc.Client, aem msgs.AppendEntryMessage) {
+	msg := msgs.LogMatchMessage{
+		TargetID:    aem.SourceID,
+		SourceID:    aem.TargetID,
+		LatestEntry: aem.NewEntry,
+	}
+	msgs.SendLogMatchMessage(server, msg)
+
+	log.Selflog.StartAppendEntryProcess(aem.NewEntry)
+	log.Selflog.CommitWaitingEntry()
+}
+
+/* sends log error message */
+func indicateLogError(server *rpc.Client, aem msgs.AppendEntryMessage) {
+	msg := msgs.LogErrorMessage{
+		TargetID:    aem.SourceID,
+		SourceID:    aem.TargetID,
+		Exists:      true,
+		MorePresent: false, // to be changed by server if necessary
+	}
+	msgs.SendLogErrorMessage(server, msg)
+}
+
+// /* compares entries in received aem with self log - send appropriate response */
+// func compareEntries(server *rpc.Client, aem msgs.AppendEntryMessage) {
+// 	leaderPrevEntry := aem.PreviousEntry
+// 	leaderNewEntry := aem.NewEntry
+// 	followerPrevEntry := log.Selflog.GetLastCommitted()
+// 	if leaderNewEntry.Exists {
+// 		/* Case 1: leader is trying to append an entry, check if follower log up to date */
+// 		if !leaderPrevEntry.Exists && !followerPrevEntry.Exists {
+// 			/* Case 1a: leader and follower don't have prev entries, indicate match and add entry to follower log*/
+// 			indicateLogMatch(server, aem)
+// 		} else if leaderPrevEntry.Exists && followerPrevEntry.Exists {
+// 			/* Case 1b: leader and follower have prev entries, compare them */
+// 			if leaderPrevEntry.MatchesAndBothExist(followerPrevEntry) {
+// 				/* Case 1ba: leader and follower entries match, send log match msg and add entry to follower log */
+// 				indicateLogMatch(server, aem)
+// 			} else {
+// 				/* Case 1bb: leader and follower entries don't match, send log error msg */
+// 				indicateLogError(server, aem)
+// 			}
+// 		} else if leaderPrevEntry.Exists {
+// 			/* Case 1c: follower doesn't have an entry in log, follower not up to date */
+// 			indicateLogError(server, aem)
+// 		} else {
+// 			/* Case 1d: leader doesn't have an entry in log but follower does, this shouldn't happen, do nothing */
+// 			fmt.Println("Weird scenario: leader no log but follower have log in sendResponsetoAEM()")
+// 			// possibly happens bc leader elected doesn't have the most up to date logs
+// 			// also would happen when follower appended but leader still waiting on approval before committing
+// 		}
+// 	}
+// 	/* Case 2: new entry doesn't exist, do nothing */
+// }
 
 /* Send leader heartbeat to all other nodes - part of leader role - called upon role transition */
 func SendAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) {

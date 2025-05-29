@@ -24,18 +24,13 @@ var Selflog *Log
 type Log struct {
 	mu           *sync.RWMutex // enables thread-safe methods
 	Committed    []LogEntry    // all committed log data
-	Pending      []LogEntry    // entries pending the approval process
-	Waitingentry LogEntry      // entry currently being appended
+	Pending      []LogEntry    // entries pending the approval process, only used by leader (followers don't use at all)
+	Waitingentry LogEntry      // entry currently being appended, only really used by leader (followers use but immmediately commit)
 }
 
 func NewLog() *Log {
 	committed := make([]LogEntry, 0, 10)
 	pending := make([]LogEntry, 0, 10)
-
-	// entries[0] = LogEntry{ // TODO - change this so that doesn't have 1 initially in log, just assumes that others will be able to check len via Log.GetSize()
-	// 	Exists: false,
-	// 	Index:  0,
-	// }
 
 	return &Log{
 		mu:        new(sync.RWMutex),
@@ -99,7 +94,7 @@ func (l *Log) CommitWaitingEntry() error {
 }
 
 /* for use wherever trying to add to log - need to have good term input */
-func (l *Log) StartAppendProcess(entry LogEntry) {
+func (l *Log) StartAppendEntryProcess(entry LogEntry) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -126,8 +121,8 @@ func (l *Log) GetCommittedCopy() []LogEntry {
 // 	l.mu.Lock()
 // 	defer l.mu.Unlock()
 
-// 	index := len(l.Committed) // TODO - CHECK - change this if possible to have temporary entries
-// 	entry.Index = index       // would need to account for the pending entries in the log at indexes before this entry
+// 	index := len(l.Committed)
+// 	entry.Index = index
 // 	l.Committed = append(l.Committed, entry)
 
 // 	return nil

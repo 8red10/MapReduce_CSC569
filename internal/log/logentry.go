@@ -8,9 +8,11 @@ type LogEntry struct {
 	// Data   int // data of entry in Log
 }
 
-func (e1 LogEntry) Matches(e2 LogEntry) bool {
-	// return e1.Exists == e2.Exists && e1.Index == e2.Index && e1.Data.Matches(e2.Data)
-	return e1.Exists == e2.Exists && e1.Index == e2.Index && e1.Term == e2.Term
+func (e1 LogEntry) MatchesAndBothExist(e2 LogEntry) bool {
+	if !e1.Exists || !e2.Exists {
+		return false
+	}
+	return e1.Index == e2.Index && e1.Term == e2.Term
 }
 
 type MapReduceData struct {

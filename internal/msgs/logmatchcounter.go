@@ -85,7 +85,7 @@ func (lm *LogMatchCounter) Add(payload LogMatchMessage, reply *bool) error {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
-	if payload.LatestEntry.Matches(lm.LatestEntry) {
+	if payload.LatestEntry.MatchesAndBothExist(lm.LatestEntry) {
 		lm.Mailbox[payload.SourceID] = true
 		*reply = true
 	} else {
@@ -111,7 +111,7 @@ func (lm *LogMatchCounter) Listen(payload LogMatchMessage, reply *int) error {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
 
-	if lm.LatestEntry.Matches(payload.LatestEntry) {
+	if lm.LatestEntry.MatchesAndBothExist(payload.LatestEntry) {
 		count := 0
 		for i := range node.NUM_NODES {
 			if lm.Mailbox[i+1] {

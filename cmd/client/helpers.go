@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
@@ -79,9 +80,25 @@ func createSelfTable(server *rpc.Client, id int) error {
 		fmt.Printf("Fail: Node %d member list not added to server Requests\n", id)
 		return errors.New("createSelfTable(): table not added")
 	}
+	return nil
+}
+
+func createSelfWaitingEntry() {
+	log.Waitingentry = log.LogEntry{
+		Exists: false,
+		Index:  -1,
+	}
+	fmt.Println("Success: created self waiting log entry.")
+}
+
+func createSelfLog() {
+	log.Selflog = log.NewLog()
+	fmt.Println("Success: created self log.")
+}
+
+func initComplete() {
 	fmt.Println("Initialization complete.")
 	fmt.Print("------------------------------------------\n\n")
-	return nil
 }
 
 func createWG() {

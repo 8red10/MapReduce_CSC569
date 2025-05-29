@@ -147,6 +147,24 @@ func SendLogMatchMessage(server *rpc.Client, msg LogMatchMessage) {
 	}
 }
 
+/* uses RPC to reset latest entry on in the log match counter struct */
+func SendLMResetEntry(server *rpc.Client, lmm LogMatchMessage) {
+	var added bool
+	if err := server.Call("LogMatchCounter.ResetLatestEntry", lmm, &added); err != nil {
+		fmt.Println("ERROR: LogMatchCounter.ResetLatestEntry():", err)
+	} else if added {
+		if DEBUG_MESSAGES {
+			fmt.Println("OK: reset entry in LogMatchCounter")
+		}
+	} else {
+		if DEBUG_MESSAGES {
+			fmt.Println("ERROR: entry NOT reset in LogMatchCounter")
+		} else {
+			fmt.Println("ERROR: entry NOT reset in LogMatchCounter")
+		}
+	}
+}
+
 /*
 Count approval for the proposed log entry to append.
 Part of leader role.

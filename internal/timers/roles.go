@@ -21,7 +21,8 @@ func BecomeFollower(selfNode *node.Node, newTerm int) {
 	fmt.Println("becoming follower... ")
 
 	if selfNode.GetRole() == LEADER {
-		SendAppendEntriesTimer.Stop() // only need to stop aem if coming from leader
+		SendAppendEntriesTimer.Stop() // only need to stop sending aem if transitioning role from leader
+		CountLogMatchesTimer.Stop()   // only need to stop counting log matches if coming from leader
 	}
 	if role := selfNode.GetRole(); role == CANDIDATE {
 		CountVotesTimer.Stop() // only need to stop count votes if coming from candidate
@@ -83,6 +84,7 @@ func BecomeCandidate(server *rpc.Client, selfNode *node.Node) {
 func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	fmt.Println("becoming leader...")
 	ElectionTimer.Stop() // auto starts this timer in the beginning so don't need to protect this stop
+	StartCountLogMatchesTimer(server, selfNode)
 	selfNode.UpdateRoleTo(LEADER)
 	go SendAppendEntriesTimerCallback(server, selfNode)
 }

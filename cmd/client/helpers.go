@@ -19,7 +19,6 @@ const (
 )
 
 /* Global level variables */
-var selfnode node.Node
 var wg *sync.WaitGroup
 
 func calcExitTime() int {
@@ -51,9 +50,9 @@ func parseArgs(exit_time int) int {
 }
 
 func createSelfNode(server *rpc.Client, id int) error {
-	selfnode = node.NewNode(id)
+	node.Selfnode = node.NewNode(id)
 	var self_node_response node.Node // allocate space for a response to overwrite this (var for RPC reply to be assigned)
-	err := server.Call("MemberList.Add", selfnode, &self_node_response)
+	err := server.Call("MemberList.Add", *node.Selfnode, &self_node_response)
 	if err != nil {
 		fmt.Println("ERROR: MemberList.Add()", err)
 	} else {
@@ -65,7 +64,7 @@ func createSelfNode(server *rpc.Client, id int) error {
 func createSelfTable(server *rpc.Client, id int) error {
 	memlist.Selflist = memlist.NewMemberList()
 	var self_node_response node.Node
-	memlist.Selflist.Add(selfnode, &self_node_response)
+	memlist.Selflist.Add(*node.Selfnode, &self_node_response)
 	req := msgs.GossipMessage{Init: true, TargetID: id, Table: *memlist.Selflist}
 	updatedEntry := true
 	err := server.Call("Requests.Add", req, &updatedEntry)
@@ -91,13 +90,13 @@ func createWG() {
 
 func startTimers(server *rpc.Client, id int, exit_time int) {
 	/* Gossip */
-	timers.StartUpdateSelfTimer(server, &selfnode, memlist.Selflist, id)
-	timers.StartGossipSelfTimer(server, memlist.Selflist, &selfnode)
-	timers.StartFailSelfTimer(server, &selfnode, wg, exit_time)
+	timers.StartUpdateSelfTimer(server, node.Selfnode, memlist.Selflist, id)
+	timers.StartGossipSelfTimer(server, memlist.Selflist, node.Selfnode)
+	timers.StartFailSelfTimer(server, node.Selfnode, wg, exit_time)
 	/* Election */
-	timers.StartElectionTimer(server, &selfnode)
-	timers.StartCheckAppendEntriesTimer(server, &selfnode)
-	timers.StartVoteRequestTimer(server, &selfnode)
+	timers.StartElectionTimer(server, node.Selfnode)
+	timers.StartCheckAppendEntriesTimer(server, node.Selfnode)
+	timers.StartVoteRequestTimer(server, node.Selfnode)
 	/* Log */
 
 	// to be implemented and added

@@ -10,6 +10,9 @@ const (
 	NUM_NODES = 8
 )
 
+/* Package level variable */
+var Selfnode *Node
+
 /* Node struct represents a computing node */
 type Node struct {
 	ID        int           // ID number
@@ -22,8 +25,8 @@ type Node struct {
 }
 
 /* Returns a new instance of a Node (returns as a pointer) */
-func NewNode(id int) Node {
-	return Node{
+func NewNode(id int) *Node {
+	return &Node{
 		mu:        new(sync.RWMutex),
 		ID:        id,
 		Hbcounter: 0,

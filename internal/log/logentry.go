@@ -1,8 +1,5 @@
 package log
 
-/* Package level variable */
-var Waitingentry LogEntry
-
 type LogEntry struct {
 	Exists bool          // when reading: true if Log contains an entry, false otherwise
 	Index  int           // index of entry in Log

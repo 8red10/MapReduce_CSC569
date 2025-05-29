@@ -1,5 +1,18 @@
 package log
 
+/*
+Info:
+- log is a struct with a slice for committed entries, slice for pending entries, and holds the entry currently being processed
+Relies on:
+- send AEM checking for the newest waiting entry before sending
+- AEM always being sent with the most up to date waiting entry
+- send AEM also sending the latest committed (appended) entry for follower to check the index with
+- AEM message send being idempotent (followers check the previous committed entry's index before deciding to add)
+- getlastcommitted being called in send AEM to send most up-to-date log info
+- startwaitingprocess being called by whoever wants to append something to the log
+- commitwaitingentry being called by count log matches if it receives majority approval
+*/
+
 import (
 	"errors"
 	"sync"
@@ -9,22 +22,14 @@ import (
 var Selflog *Log
 
 type Log struct {
-	mu      *sync.RWMutex // enables thread-safe methods
-	Entries []LogEntry    // all log data
-	Pending []LogEntry    // entries pending the approval process
-	// Pending []LogEntry ? then can just loop through these pending to and add the matching one after LogMatchMessage
-	// 	or should LogMatchCounter have the current LogEntry
-	//	would then assume that could only have one pending LogEntry - this ok ?
-	// TODO - check if we want to have this
-	//	- OR it'd just be one thing allowed to be proposed (sent via AppendEntryMessage at a time)
-	// Pending entries implementation
-	// 	- would go in FIFO order
-	// 	- add to pending as writes accumulate
-	//	- can bypass pending if current appendEntry proposal is committed and len(Pending) == 0
+	mu           *sync.RWMutex // enables thread-safe methods
+	Committed    []LogEntry    // all committed log data
+	Pending      []LogEntry    // entries pending the approval process
+	Waitingentry LogEntry      // entry currently being appended
 }
 
 func NewLog() *Log {
-	entries := make([]LogEntry, 0, 10)
+	committed := make([]LogEntry, 0, 10)
 	pending := make([]LogEntry, 0, 10)
 
 	// entries[0] = LogEntry{ // TODO - change this so that doesn't have 1 initially in log, just assumes that others will be able to check len via Log.GetSize()
@@ -33,38 +38,19 @@ func NewLog() *Log {
 	// }
 
 	return &Log{
-		mu:      new(sync.RWMutex),
-		Entries: entries,
-		Pending: pending,
+		mu:        new(sync.RWMutex),
+		Committed: committed,
+		Pending:   pending,
+		Waitingentry: LogEntry{
+			Exists: false,
+			Index:  -1,
+		},
 	}
 }
 
-func (l *Log) Add(entry LogEntry) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	index := len(l.Entries) // TODO - CHECK - change this if possible to have temporary entries
-	entry.Index = index     // would need to account for the pending entries in the log at indexes before this entry
-	l.Entries = append(l.Entries, entry)
-
-	return nil
-}
-
-func (l *Log) Update(entry LogEntry, index int) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if s := len(l.Entries); index >= 0 && index < s {
-		l.Entries[index] = entry
-	} else {
-		return errors.New("Log.Update(): index out of range")
-	}
-
-	return nil
-}
-
-func (l *Log) GetEntry(index int) LogEntry {
-	temp := LogEntry{
+/* for use in send AEM */
+func (l *Log) GetLastCommitted() LogEntry {
+	last := LogEntry{
 		Exists: false,
 		Index:  -1,
 	}
@@ -72,73 +58,173 @@ func (l *Log) GetEntry(index int) LogEntry {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
-	if s := len(l.Entries); index >= 0 && index < s {
-		temp = l.Entries[index]
+	if lenCommitted := len(l.Committed); lenCommitted > 0 {
+		last = l.Committed[lenCommitted-1]
 	}
 
-	return temp
+	return last
 }
 
-func (l *Log) GetSize() int {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	return len(l.Entries)
-}
-
-func (l *Log) GetDeepCopy() []LogEntry {
+/* for use in count log matches */
+func (l *Log) CommitWaitingEntry() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	logCopy := make([]LogEntry, len(l.Entries))
-	copy(logCopy, l.Entries)
+	if !l.Waitingentry.Exists {
+		return errors.New("Log.CommitWaitingEntry(): waiting entry doesn't exist")
+	}
+
+	l.Waitingentry.Index = len(l.Committed)
+	l.Committed = append(l.Committed, l.Waitingentry)
+
+	if lenPending := len(l.Pending); lenPending > 0 {
+		l.Waitingentry = l.Pending[0]
+		l.Waitingentry.Exists = true
+		l.Pending = l.Pending[1:]
+	} else {
+		l.Waitingentry.Exists = false
+	}
+
+	return nil
+}
+
+/* for use wherever trying to add to log */
+func (l *Log) StartAppendProcess(entry LogEntry) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if !l.Waitingentry.Exists {
+		l.Waitingentry = entry
+		l.Waitingentry.Exists = true
+	} else {
+		l.Pending = append(l.Pending, entry)
+	}
+}
+
+/* for use in send entire log */
+func (l *Log) GetCommittedCopy() []LogEntry {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	logCopy := make([]LogEntry, len(l.Committed))
+	copy(logCopy, l.Committed)
 
 	return logCopy
 }
 
-func (l *Log) GetPendingSize() int {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+// func (l *Log) Add(entry LogEntry) error {
+// 	l.mu.Lock()
+// 	defer l.mu.Unlock()
 
-	return len(l.Pending)
-}
+// 	index := len(l.Committed) // TODO - CHECK - change this if possible to have temporary entries
+// 	entry.Index = index       // would need to account for the pending entries in the log at indexes before this entry
+// 	l.Committed = append(l.Committed, entry)
 
-func (l *Log) AddPending(entry LogEntry) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+// 	return nil
+// }
 
-	index := len(l.Pending)
-	entry.Index = index
-	l.Pending = append(l.Pending, entry)
+// func (l *Log) Update(entry LogEntry, index int) error {
+// 	l.mu.Lock()
+// 	defer l.mu.Unlock()
 
-	return nil
-}
+// 	if s := len(l.Committed); index >= 0 && index < s {
+// 		l.Committed[index] = entry
+// 	} else {
+// 		return errors.New("Log.Update(): index out of range")
+// 	}
 
-func (l *Log) UpdatePending(entry LogEntry, index int) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+// 	return nil
+// }
 
-	if s := len(l.Pending); index >= 0 && index < s {
-		l.Pending[index] = entry
-	} else {
-		return errors.New("Log.UpdatePending(): index out of range")
-	}
+// func (l *Log) GetEntry(index int) LogEntry {
+// 	temp := LogEntry{
+// 		Exists: false,
+// 		Index:  -1,
+// 	}
 
-	return nil
-}
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
 
-func (l *Log) GetPendingEntry(index int) LogEntry {
-	temp := LogEntry{
-		Exists: false,
-		Index:  -1,
-	}
+// 	if s := len(l.Committed); index >= 0 && index < s {
+// 		temp = l.Committed[index]
+// 	}
 
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+// 	return temp
+// }
 
-	if s := len(l.Pending); index >= 0 && index < s {
-		temp = l.Pending[index]
-	}
+// func (l *Log) GetSize() int {
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
 
-	return temp
-}
+// 	return len(l.Committed)
+// }
+
+// func (l *Log) GetPendingSize() int {
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
+
+// 	return len(l.Pending)
+// }
+
+// func (l *Log) AddPending(entry LogEntry) error {
+// 	l.mu.Lock()
+// 	defer l.mu.Unlock()
+
+// 	index := len(l.Pending)
+// 	entry.Index = index
+// 	l.Pending = append(l.Pending, entry)
+
+// 	return nil
+// }
+
+// func (l *Log) UpdatePending(entry LogEntry, index int) error {
+// 	l.mu.Lock()
+// 	defer l.mu.Unlock()
+
+// 	if s := len(l.Pending); index >= 0 && index < s {
+// 		l.Pending[index] = entry
+// 	} else {
+// 		return errors.New("Log.UpdatePending(): index out of range")
+// 	}
+
+// 	return nil
+// }
+
+// func (l *Log) GetPendingEntry(index int) LogEntry {
+// 	temp := LogEntry{
+// 		Exists: false,
+// 		Index:  -1,
+// 	}
+
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
+
+// 	if s := len(l.Pending); index >= 0 && index < s {
+// 		temp = l.Pending[index]
+// 	}
+
+// 	return temp
+// }
+
+// func (l *Log) CheckWaitingEntry() bool {
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
+
+// 	return l.Waitingentry.Exists
+// }
+
+// func (l *Log) GetWaitingEntry() LogEntry {
+// 	l.mu.RLock()
+// 	defer l.mu.RUnlock()
+
+// 	return l.Waitingentry
+// }
+
+// func (l *Log) UpdateWaitingEntry(entry LogEntry) error {
+// 	l.mu.Lock()
+// 	defer l.mu.Unlock()
+
+// 	l.Waitingentry = entry
+
+// 	return nil
+// }

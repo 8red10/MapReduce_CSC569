@@ -83,14 +83,6 @@ func createSelfTable(server *rpc.Client, id int) error {
 	return nil
 }
 
-func createSelfWaitingEntry() {
-	log.Waitingentry = log.LogEntry{
-		Exists: false,
-		Index:  -1,
-	}
-	fmt.Println("Success: created self waiting log entry.")
-}
-
 func createSelfLog() {
 	log.Selflog = log.NewLog()
 	fmt.Println("Success: created self log.")

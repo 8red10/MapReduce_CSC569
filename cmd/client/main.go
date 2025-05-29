@@ -13,7 +13,6 @@ func main() {
 	if createSelfTable(server, id) != nil {
 		return
 	}
-	createSelfWaitingEntry()
 	createSelfLog()
 	initComplete()
 	createWG()

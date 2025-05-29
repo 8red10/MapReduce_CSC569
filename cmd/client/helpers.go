@@ -20,7 +20,6 @@ const (
 
 /* Global level variables */
 var selfnode node.Node
-var selflist *memlist.MemberList
 var wg *sync.WaitGroup
 
 func calcExitTime() int {
@@ -64,10 +63,10 @@ func createSelfNode(server *rpc.Client, id int) error {
 }
 
 func createSelfTable(server *rpc.Client, id int) error {
-	selflist = memlist.NewMemberList()
+	memlist.Selflist = memlist.NewMemberList()
 	var self_node_response node.Node
-	selflist.Add(selfnode, &self_node_response)
-	req := msgs.GossipMessage{Init: true, TargetID: id, Table: *selflist}
+	memlist.Selflist.Add(selfnode, &self_node_response)
+	req := msgs.GossipMessage{Init: true, TargetID: id, Table: *memlist.Selflist}
 	updatedEntry := true
 	err := server.Call("Requests.Add", req, &updatedEntry)
 	if err != nil {
@@ -92,8 +91,8 @@ func createWG() {
 
 func startTimers(server *rpc.Client, id int, exit_time int) {
 	/* Gossip */
-	timers.StartUpdateSelfTimer(server, &selfnode, selflist, id)
-	timers.StartGossipSelfTimer(server, selflist, &selfnode)
+	timers.StartUpdateSelfTimer(server, &selfnode, memlist.Selflist, id)
+	timers.StartGossipSelfTimer(server, memlist.Selflist, &selfnode)
 	timers.StartFailSelfTimer(server, &selfnode, wg, exit_time)
 	/* Election */
 	timers.StartElectionTimer(server, &selfnode)

@@ -8,6 +8,9 @@ import (
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
+/* Package level variable */
+var Selflist *MemberList
+
 /* MemberList struct represents participanting nodes - holds Node information */
 type MemberList struct {
 	mu      *sync.RWMutex     // enables thread-safe operations

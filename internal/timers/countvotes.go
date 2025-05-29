@@ -25,9 +25,7 @@ func StartCountVotesTimer(server *rpc.Client, selfNode *node.Node) {
 	)
 }
 
-/*
-Relies on the timer already being created.
-*/
+/* Relies on the timer already being created. */
 func ResetCountVotesTimer() {
 	CountVotesTimer.Reset(time.Millisecond * time.Duration(COUNT_VOTES_TIME))
 }

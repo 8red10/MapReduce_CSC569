@@ -107,9 +107,8 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 	timers.StartCheckAppendEntriesTimer(server, node.Selfnode)
 	timers.StartVoteRequestTimer(server, node.Selfnode)
 	/* Log */
-
-	// to be implemented and added
-
+	timers.StartCheckEntireLogTimer(server, node.Selfnode)
+	timers.CheckEntireLogTimer.Stop()
 }
 
 func runUntilFailure(id int) {

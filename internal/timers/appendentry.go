@@ -134,6 +134,7 @@ func indicateLogError(server *rpc.Client, aem msgs.AppendEntryMessage) {
 		MorePresent: false, // to be changed by server if necessary
 	}
 	msgs.SendLogErrorMessage(server, msg)
+	ResetCheckEntireLogTimer()
 }
 
 // /* compares entries in received aem with self log - send appropriate response */

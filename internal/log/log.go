@@ -117,6 +117,14 @@ func (l *Log) GetCommittedCopy() []LogEntry {
 	return logCopy
 }
 
+/* for use in check entire log callback */
+func (l *Log) ReplaceCommitted(newLog []LogEntry) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.Committed = newLog
+}
+
 // func (l *Log) Add(entry LogEntry) error {
 // 	l.mu.Lock()
 // 	defer l.mu.Unlock()

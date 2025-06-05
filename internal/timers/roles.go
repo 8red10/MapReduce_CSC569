@@ -84,7 +84,8 @@ func BecomeCandidate(server *rpc.Client, selfNode *node.Node) {
 /* Change role to leader */
 func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	fmt.Println("becoming leader...")
-	ElectionTimer.Stop() // auto starts this timer in the beginning so don't need to protect this stop
+	ElectionTimer.Stop()       // auto starts this timer in the beginning so don't need to protect this stop
+	CheckEntireLogTimer.Stop() // auto starts (then stops) this timer in the beginning so don't need to protect this stop
 	StartCountLogMatchesTimer(server, selfNode)
 	StartCheckLogErrorTimer(server, selfNode)
 	selfNode.UpdateRoleTo(LEADER)

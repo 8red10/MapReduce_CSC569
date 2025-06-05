@@ -61,5 +61,5 @@ func CheckLogErrorTimerCallback(server *rpc.Client, selfNode *node.Node) {
 		}
 	}
 
-	ResetCheckAppendEntriesTimer()
+	ResetCheckLogErrorTimer()
 }

@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	COUNT_LOG_MATCH_TIME = 5 // in milliseconds
+	COUNT_LOG_MATCH_TIME = 1 // in milliseconds
 )
 
 /* Package level variables */
@@ -61,7 +61,7 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 			LatestEntry: log.Selflog.GetWaitingEntry(),
 		}
 		msgs.SendLMResetEntry(server, lmm)
-		fmt.Println("committing current entry")
+		fmt.Println("committing current entry = also reset LMC entry")
 	} else {
 		/* Case 2: leader didn't get majority approval yet, wait for next callback */
 		fmt.Println("not committing current entry")

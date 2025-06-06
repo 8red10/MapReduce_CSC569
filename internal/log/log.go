@@ -16,6 +16,8 @@ Relies on:
 import (
 	"fmt"
 	"sync"
+
+	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
 /* Package level variable */
@@ -56,6 +58,7 @@ func (l *Log) GetLastCommitted() LogEntry {
 	if lenCommitted := len(l.Committed); lenCommitted > 0 {
 		last = l.Committed[lenCommitted-1]
 	}
+	// fmt.Printf("GLC w %t %d %d -------------------------------\n", last.Exists, last.Index, last.Term)
 
 	return last
 }
@@ -80,7 +83,8 @@ func (l *Log) CommitWaitingEntry() bool {
 		return nextWaitingEntryExists
 	}
 
-	l.Waitingentry.index = len(l.Committed)
+	l.Waitingentry.Index = len(l.Committed)
+	l.Waitingentry.Term = node.Selfnode.GetTerm()
 	l.Committed = append(l.Committed, l.Waitingentry)
 
 	if lenPending := len(l.Pending); lenPending > 0 {
@@ -103,6 +107,7 @@ func (l *Log) StartAppendEntryProcess(entry LogEntry) bool {
 	newWaitingEntry := false
 
 	if !l.Waitingentry.Exists {
+		// fmt.Printf("SAEP w %t %d %d\n", entry.Exists, entry.Index, entry.Term)
 		l.Waitingentry = entry
 		l.Waitingentry.Exists = true
 		newWaitingEntry = true

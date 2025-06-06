@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	CHECK_LEADER_HEARTBEAT_TIME = 5 // delay between non-leader checking for leader heartbeats, in milliseconds
-	LEADER_HEARTBEAT_TIME       = 5 // delay between leader hearbeats, in milliseconds
+	CHECK_LEADER_HEARTBEAT_TIME = 20 // delay between non-leader checking for leader heartbeats, in milliseconds
+	LEADER_HEARTBEAT_TIME       = 20 // delay between leader hearbeats, in milliseconds
 )
 
 /* Package level variables */
@@ -96,6 +96,18 @@ func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 	leaderPrevEntry := aem.PreviousEntry
 	leaderNewEntry := aem.NewEntry
 	followerPrevEntry := log.Selflog.GetLastCommitted()
+
+	// if followerPrevEntry.Exists && leaderNewEntry.Exists {
+	// 	fmt.Printf("FPE yes, term: %d ", followerPrevEntry.GetTerm())
+	// } else {
+	// 	fmt.Printf("FPE no, term: %d ", followerPrevEntry.GetTerm())
+	// }
+
+	fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)",
+		followerPrevEntry.Exists, followerPrevEntry.GetIndex(), followerPrevEntry.GetTerm(),
+		leaderNewEntry.Exists, leaderNewEntry.GetIndex(), leaderNewEntry.GetTerm(),
+		leaderPrevEntry.Exists, leaderPrevEntry.GetIndex(), leaderPrevEntry.GetTerm(),
+	)
 
 	if leaderNewEntry.Exists && !followerPrevEntry.MatchesAndBothExist(leaderNewEntry) {
 		/* Case 1: leader trying to update log and follower not appended new entry yet */
@@ -189,6 +201,15 @@ func SendAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 				PreviousEntry: log.Selflog.GetLastCommitted(),
 				NewEntry:      log.Selflog.GetWaitingEntry(),
 			}
+			// fmt.Printf("SAETC w LNE %t %d %d, LPE %t %d %d\n",
+			// 	aem.PreviousEntry.Exists, aem.PreviousEntry.Index, aem.PreviousEntry.Term,
+			// 	aem.NewEntry.Exists, aem.NewEntry.Index, aem.NewEntry.Term,
+			// )
+			// fmt.Printf("SAETC w LNE %d \n", aem.PreviousEntry.Term) //%d %d, LPE %t %d %d\n",
+			// // aem.PreviousEntry.Exists, aem.PreviousEntry.Index, aem.PreviousEntry.Term,
+			// // aem.NewEntry.Exists, aem.NewEntry.Index, aem.NewEntry.Term,
+			// // )
+			// fmt.Println()
 			go msgs.SendAppendEntryMessage(server, aem)
 		}
 	}

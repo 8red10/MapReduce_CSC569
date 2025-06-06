@@ -142,7 +142,7 @@ func SendLogMatchMessage(server *rpc.Client, msg LogMatchMessage) {
 		if DEBUG_MESSAGES {
 			fmt.Printf("OK: LogMatchMessage NOT sent to node %d\n", msg.TargetID)
 		} else {
-			fmt.Printf("LogMatchMessage NOT sent to node %d\n", msg.TargetID)
+			fmt.Printf("LogMatchMessage NOT sent to node %d = LMC entry already approved before self vote\n", msg.TargetID) // added more info on the error
 		}
 	}
 }

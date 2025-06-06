@@ -34,8 +34,10 @@ func BecomeFollower(selfNode *node.Node, newTerm int) {
 	ResetElectionTimer()
 	selfNode.UpdateRoleTo(FOLLOWER)
 	selfNode.UpdateTermTo(newTerm)
-	fmt.Printf("becoming follower(): updated term to %d\n", newTerm)
-	fmt.Println("becoming follower2... ")
+	if DEBUG_MESSAGES {
+		fmt.Printf("becoming follower(): updated term to %d\n", newTerm)
+		fmt.Println("becoming follower2... ")
+	}
 }
 
 /* Change role to candidate */
@@ -94,8 +96,10 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	// StartCountLogMatchesTimer(server, selfNode) // should only start when an entry is being proposed
 	StartCheckLogErrorTimer(server, selfNode)
 	selfNode.UpdateRoleTo(LEADER)
-	fmt.Printf(" at term %d", selfNode.GetTerm())
-	fmt.Println("becoming leader2...")
+	if DEBUG_MESSAGES {
+		fmt.Printf(" at term %d", selfNode.GetTerm())
+		fmt.Println("becoming leader2...")
+	}
 	go SendAppendEntriesTimerCallback(server, selfNode)
 
 	/* TESTING = after 50 ms, add to self log - see what happens */

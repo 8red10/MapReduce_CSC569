@@ -49,9 +49,13 @@ func ResetCountLogMatchesTimer() {
 
 /* Count the amount of approval for the current log entry - timer started via this callback in becomeleader */
 func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
-	fmt.Println("counting log matches...")
+	if DEBUG_MESSAGES {
+		fmt.Println("counting log matches...")
+	}
 	matchCount := msgs.CountLogMatches(server, selfNode.ID, log.Selflog.Waitingentry)
-	fmt.Printf("got %d matches: ", matchCount)
+	if DEBUG_MESSAGES {
+		fmt.Printf("got %d matches: ", matchCount)
+	}
 	countAgain := true
 	if matchCount > node.NUM_NODES/2 {
 		/* Case 1: leader got majority approval for entry, commit to log if haven't already committed */
@@ -61,10 +65,12 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 			LatestEntry: log.Selflog.GetWaitingEntry(),
 		}
 		msgs.SendLMResetEntry(server, lmm)
-		fmt.Println("committing current entry = also reset LMC entry")
+		fmt.Printf("leader committing current entry = also reset LMC entry\n\n")
 	} else {
 		/* Case 2: leader didn't get majority approval yet, wait for next callback */
-		fmt.Println("not committing current entry")
+		if DEBUG_MESSAGES {
+			fmt.Println("not committing current entry")
+		}
 	}
 
 	/* try to count log matches again if there is a waiting entry (either entry is the same one or a new one exists) */

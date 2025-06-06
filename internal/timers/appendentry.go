@@ -97,35 +97,39 @@ func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 	leaderNewEntry := aem.NewEntry
 	followerPrevEntry := log.Selflog.GetLastCommitted()
 
-	// if followerPrevEntry.Exists && leaderNewEntry.Exists {
-	// 	fmt.Printf("FPE yes, term: %d ", followerPrevEntry.GetTerm())
-	// } else {
-	// 	fmt.Printf("FPE no, term: %d ", followerPrevEntry.GetTerm())
-	// }
-
-	fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)",
-		followerPrevEntry.Exists, followerPrevEntry.GetIndex(), followerPrevEntry.GetTerm(),
-		leaderNewEntry.Exists, leaderNewEntry.GetIndex(), leaderNewEntry.GetTerm(),
-		leaderPrevEntry.Exists, leaderPrevEntry.GetIndex(), leaderPrevEntry.GetTerm(),
-	)
+	if DEBUG_MESSAGES {
+		fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)",
+			followerPrevEntry.Exists, followerPrevEntry.GetIndex(), followerPrevEntry.GetTerm(),
+			leaderNewEntry.Exists, leaderNewEntry.GetIndex(), leaderNewEntry.GetTerm(),
+			leaderPrevEntry.Exists, leaderPrevEntry.GetIndex(), leaderPrevEntry.GetTerm(),
+		)
+	}
 
 	if leaderNewEntry.Exists && !followerPrevEntry.MatchesAndBothExist(leaderNewEntry) {
 		/* Case 1: leader trying to update log and follower not appended new entry yet */
 		if followerPrevEntry.MatchesAndBothExist(leaderPrevEntry) {
 			/* Case 1a: follower log up to date */
-			fmt.Println("self (follower) log adding leader's new proposed entry bc prev log match")
+			if DEBUG_MESSAGES {
+				fmt.Println("self (follower) log adding leader's new proposed entry bc prev log match")
+			}
 			indicateLogMatch(server, aem)
 		} else if !followerPrevEntry.Exists && !leaderPrevEntry.Exists {
 			/* Case 1b: follower and leader don't have anything committed yet */
-			fmt.Println("self (follower) log adding leader's new proposed entry bc neither committed")
+			if DEBUG_MESSAGES {
+				fmt.Println("self (follower) log adding leader's new proposed entry bc neither committed")
+			}
 			indicateLogMatch(server, aem)
 		} else {
 			/* Case 1c: log mismatch */
-			fmt.Println("self (follower) log mismatch leader's")
+			if DEBUG_MESSAGES {
+				fmt.Println("self (follower) log mismatch leader's")
+			}
 			indicateLogError(server, aem)
 		}
 	} else {
-		fmt.Println("self (follower) log up to date w leader's log")
+		if DEBUG_MESSAGES {
+			fmt.Println("self (follower) log up to date w leader's log")
+		}
 	}
 }
 

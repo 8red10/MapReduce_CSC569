@@ -41,6 +41,12 @@ func StartCountLogMatchesTimer(server *rpc.Client, selfNode *node.Node) {
 	)
 }
 
+/* Resets the timer */
+func ResetCountLogMatchesTimer() {
+	CountLogMatchesTimer.Reset(time.Millisecond * time.Duration(COUNT_LOG_MATCH_TIME))
+	// CheckLogErrorTimer.Reset(time.Second * time.Duration(COUNT_LOG_MATCH_TIME))
+}
+
 /* Count the amount of approval for the current log entry - timer started via this callback in becomeleader */
 func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	fmt.Println("counting log matches...")

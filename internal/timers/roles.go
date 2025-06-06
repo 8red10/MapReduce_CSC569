@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -24,6 +25,7 @@ func BecomeFollower(selfNode *node.Node, newTerm int) {
 		SendAppendEntriesTimer.Stop() // only need to stop sending aem if transitioning role from leader
 		CountLogMatchesTimer.Stop()   // only need to stop counting log matches if coming from leader
 		CheckLogErrorTimer.Stop()     // only need to stop if coming from leader
+		log.Selflog.ClearPending()    // don't carry the pending to follower status
 	}
 	if role := selfNode.GetRole(); role == CANDIDATE {
 		CountVotesTimer.Stop() // only need to stop count votes if coming from candidate
@@ -86,8 +88,25 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	fmt.Println("becoming leader...")
 	ElectionTimer.Stop()       // auto starts this timer in the beginning so don't need to protect this stop
 	CheckEntireLogTimer.Stop() // auto starts (then stops) this timer in the beginning so don't need to protect this stop
-	StartCountLogMatchesTimer(server, selfNode)
+	// StartCountLogMatchesTimer(server, selfNode) // should only start when an entry is being proposed
 	StartCheckLogErrorTimer(server, selfNode)
 	selfNode.UpdateRoleTo(LEADER)
 	go SendAppendEntriesTimerCallback(server, selfNode)
+}
+
+/* leader function, add entry to log */
+func LeaderStartAddLogEntryProcess(server *rpc.Client, selfNode *node.Node, entry log.LogEntry) {
+	if selfNode.GetRole() == LEADER && entry.Exists {
+		updatedWaitingEntry := log.Selflog.StartAppendEntryProcess(entry)
+		if updatedWaitingEntry {
+			/* Update the latest entry in LogMatchCounter struct */
+			lmm := msgs.LogMatchMessage{
+				SourceID:    selfNode.ID,
+				LatestEntry: entry,
+			}
+			msgs.SendLMResetEntry(server, lmm)
+			/* Start count log match timer */
+			ResetCountLogMatchesTimer()
+		}
+	}
 }

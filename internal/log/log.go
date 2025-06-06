@@ -94,16 +94,21 @@ func (l *Log) CommitWaitingEntry() error {
 }
 
 /* for use wherever trying to add to log - need to have good term input */
-func (l *Log) StartAppendEntryProcess(entry LogEntry) {
+func (l *Log) StartAppendEntryProcess(entry LogEntry) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
+	updatedWaitingEntry := false
 
 	if !l.Waitingentry.Exists {
 		l.Waitingentry = entry
 		l.Waitingentry.Exists = true
+		updatedWaitingEntry = true
 	} else {
 		l.Pending = append(l.Pending, entry)
 	}
+
+	return updatedWaitingEntry
 }
 
 /* for use in send entire log */
@@ -123,6 +128,19 @@ func (l *Log) ReplaceCommitted(newLog []LogEntry) {
 	defer l.mu.Unlock()
 
 	l.Committed = newLog
+}
+
+/* for use when getting demoted from leader */
+func (l *Log) ClearPending() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.Pending = make([]LogEntry, 0, 10)
+	l.Waitingentry = LogEntry{
+		Exists: false,
+		Index:  -1,
+		Term:   -1,
+	}
 }
 
 // func (l *Log) Add(entry LogEntry) error {

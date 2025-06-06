@@ -101,14 +101,19 @@ func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 		/* Case 1: leader trying to update log and follower not appended new entry yet */
 		if followerPrevEntry.MatchesAndBothExist(leaderPrevEntry) {
 			/* Case 1a: follower log up to date */
+			fmt.Println("self (follower) log adding leader's new proposed entry bc prev log match")
 			indicateLogMatch(server, aem)
 		} else if !followerPrevEntry.Exists && !leaderPrevEntry.Exists {
 			/* Case 1b: follower and leader don't have anything committed yet */
+			fmt.Println("self (follower) log adding leader's new proposed entry bc neither committed")
 			indicateLogMatch(server, aem)
 		} else {
 			/* Case 1c: log mismatch */
+			fmt.Println("self (follower) log mismatch leader's")
 			indicateLogError(server, aem)
 		}
+	} else {
+		fmt.Println("self (follower) log up to date w leader's log")
 	}
 }
 

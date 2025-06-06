@@ -109,6 +109,8 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 	/* Log */
 	timers.StartCheckEntireLogTimer(server, node.Selfnode)
 	timers.CheckEntireLogTimer.Stop()
+	timers.StartCountLogMatchesTimer(server, node.Selfnode)
+	timers.CountLogMatchesTimer.Stop()
 }
 
 func runUntilFailure(id int) {

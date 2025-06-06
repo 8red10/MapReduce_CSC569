@@ -14,7 +14,7 @@ Relies on:
 */
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -69,12 +69,15 @@ func (l *Log) GetWaitingEntry() LogEntry {
 }
 
 /* for use in count log matches */
-func (l *Log) CommitWaitingEntry() error {
+func (l *Log) CommitWaitingEntry() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	nextWaitingEntryExists := false
+
 	if !l.Waitingentry.Exists {
-		return errors.New("Log.CommitWaitingEntry(): waiting entry doesn't exist")
+		fmt.Println("ERROR: Log.CommitWaitingEntry(): waiting entry doesn't exist")
+		return nextWaitingEntryExists
 	}
 
 	l.Waitingentry.index = len(l.Committed)
@@ -84,11 +87,12 @@ func (l *Log) CommitWaitingEntry() error {
 		l.Waitingentry = l.Pending[0]
 		l.Waitingentry.Exists = true
 		l.Pending = l.Pending[1:]
+		nextWaitingEntryExists = true
 	} else {
 		l.Waitingentry.Exists = false
 	}
 
-	return nil
+	return nextWaitingEntryExists
 }
 
 /* for use wherever trying to add to log - need to have good term input */
@@ -96,17 +100,17 @@ func (l *Log) StartAppendEntryProcess(entry LogEntry) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	updatedWaitingEntry := false
+	newWaitingEntry := false
 
 	if !l.Waitingentry.Exists {
 		l.Waitingentry = entry
 		l.Waitingentry.Exists = true
-		updatedWaitingEntry = true
+		newWaitingEntry = true
 	} else {
 		l.Pending = append(l.Pending, entry)
 	}
 
-	return updatedWaitingEntry
+	return newWaitingEntry
 }
 
 /* for use in send entire log */

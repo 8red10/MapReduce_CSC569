@@ -52,9 +52,10 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	fmt.Println("counting log matches...")
 	matchCount := msgs.CountLogMatches(server, selfNode.ID, log.Selflog.Waitingentry)
 	fmt.Printf("got %d matches: ", matchCount)
+	countAgain := true
 	if matchCount > node.NUM_NODES/2 {
 		/* Case 1: leader got majority approval for entry, commit to log if haven't already committed */
-		log.Selflog.CommitWaitingEntry()
+		countAgain = log.Selflog.CommitWaitingEntry()
 		lmm := msgs.LogMatchMessage{
 			SourceID:    selfNode.ID,
 			LatestEntry: log.Selflog.GetWaitingEntry(),
@@ -66,6 +67,8 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 		fmt.Println("not committing current entry")
 	}
 
-	/* as a leader, periodically count follower approval for the latest entry */
-	StartCountLogMatchesTimer(server, selfNode)
+	/* try to count log matches again if there is a waiting entry (either entry is the same one or a new one exists) */
+	if countAgain {
+		StartCountLogMatchesTimer(server, selfNode)
+	}
 }

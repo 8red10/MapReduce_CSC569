@@ -97,8 +97,8 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 /* leader function, add entry to log */
 func LeaderStartAddLogEntryProcess(server *rpc.Client, selfNode *node.Node, entry log.LogEntry) {
 	if selfNode.GetRole() == LEADER && entry.Exists {
-		updatedWaitingEntry := log.Selflog.StartAppendEntryProcess(entry)
-		if updatedWaitingEntry {
+		newWaitingEntry := log.Selflog.StartAppendEntryProcess(entry)
+		if newWaitingEntry {
 			/* Update the latest entry in LogMatchCounter struct */
 			lmm := msgs.LogMatchMessage{
 				SourceID:    selfNode.ID,

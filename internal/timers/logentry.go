@@ -66,4 +66,5 @@ func CheckLogEntryTimerCallback(server *rpc.Client, selfNode *node.Node) {
 			fmt.Println("CheckLogEntryTimerCallback(): reading LEM again")
 		}
 	}
+	ResetCheckLogEntryTimer()
 }

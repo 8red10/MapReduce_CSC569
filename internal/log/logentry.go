@@ -1,4 +1,4 @@
-package log
+package logs
 
 type LogEntry struct {
 	Exists bool          // when reading: true if Log contains an entry, false otherwise

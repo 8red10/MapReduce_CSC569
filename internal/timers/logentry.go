@@ -17,6 +17,7 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -46,7 +47,19 @@ func CheckLogEntryTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	for readAgain {
 		lem := msgs.ReadLogEntryMessage(server, selfNode.ID)
 		if lem.Exists {
-
+			// log.Selflog.AddToPending(lem.Entry)
+			newWaitingEntry := log.Selflog.StartAppendEntryProcess(lem.Entry)
+			fmt.Println("leader starting add log entry process - from server struct")
+			if newWaitingEntry {
+				/* Update the latest entry in LogMatchCounter struct */
+				lmm := msgs.LogMatchMessage{
+					SourceID:    selfNode.ID,
+					LatestEntry: lem.Entry,
+				}
+				msgs.SendLMResetEntry(server, lmm)
+				/* Start count log match timer */
+				ResetCountLogMatchesTimer()
+			}
 		}
 		readAgain = lem.MorePresent
 		if readAgain {

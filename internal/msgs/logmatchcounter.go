@@ -31,10 +31,10 @@ type LogMatchCounter struct {
 func NewLogMatchCounter() *LogMatchCounter {
 	return &LogMatchCounter{
 		mu: new(sync.RWMutex),
-		LatestEntry: log.LogEntry{
-			Exists: false,
-			Index:  -1,
-		},
+		LatestEntry: log.NewLogEntry(
+			false,
+			log.NewMapReduceData(-1),
+		),
 		Mailbox: make(map[int]bool),
 	}
 }

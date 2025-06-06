@@ -2,17 +2,32 @@ package log
 
 type LogEntry struct {
 	Exists bool          // when reading: true if Log contains an entry, false otherwise
-	Index  int           // index of entry in Log
-	Term   int           // term entry was added to log
+	index  int           // index of entry in Log
+	term   int           // term entry was added to log
 	Data   MapReduceData // data of entry in Log
 	// Data   int // data of entry in Log
+}
+
+func NewLogEntry(exists bool, data MapReduceData) LogEntry {
+	return LogEntry{
+		Exists: true,
+		index:  -1,
+		term:   -1,
+		Data:   data,
+	}
+}
+
+func NewMapReduceData(data int) MapReduceData {
+	return MapReduceData{
+		Data: data,
+	}
 }
 
 func (e1 LogEntry) MatchesAndBothExist(e2 LogEntry) bool {
 	if !e1.Exists || !e2.Exists {
 		return false
 	}
-	return e1.Index == e2.Index && e1.Term == e2.Term
+	return e1.index == e2.index && e1.term == e2.term
 }
 
 type MapReduceData struct {

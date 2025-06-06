@@ -36,21 +36,19 @@ func NewLog() *Log {
 		mu:        new(sync.RWMutex),
 		Committed: committed,
 		Pending:   pending,
-		Waitingentry: LogEntry{
-			Exists: false,
-			Index:  -1,
-			Term:   -1,
-		},
+		Waitingentry: NewLogEntry(
+			false,
+			NewMapReduceData(-1),
+		),
 	}
 }
 
 /* for use in send AEM */
 func (l *Log) GetLastCommitted() LogEntry {
-	last := LogEntry{
-		Exists: false,
-		Index:  -1,
-		Term:   -1,
-	}
+	last := NewLogEntry(
+		false,
+		NewMapReduceData(-1),
+	)
 
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -79,7 +77,7 @@ func (l *Log) CommitWaitingEntry() error {
 		return errors.New("Log.CommitWaitingEntry(): waiting entry doesn't exist")
 	}
 
-	l.Waitingentry.Index = len(l.Committed)
+	l.Waitingentry.index = len(l.Committed)
 	l.Committed = append(l.Committed, l.Waitingentry)
 
 	if lenPending := len(l.Pending); lenPending > 0 {
@@ -136,11 +134,10 @@ func (l *Log) ClearPending() {
 	defer l.mu.Unlock()
 
 	l.Pending = make([]LogEntry, 0, 10)
-	l.Waitingentry = LogEntry{
-		Exists: false,
-		Index:  -1,
-		Term:   -1,
-	}
+	l.Waitingentry = NewLogEntry(
+		false,
+		NewMapReduceData(-1),
+	)
 }
 
 // func (l *Log) Add(entry LogEntry) error {

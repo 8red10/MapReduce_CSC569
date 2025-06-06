@@ -39,6 +39,6 @@ func updateSelfInfo(server *rpc.Client, self_node *node.Node, memberlist *memlis
 	msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memberlist} // copying table works if mutex value not copied
 	msgs.SendGossipMessage(server, msg)
 
-	/* Print this node's member list */
-	memlist.PrintMemberList(*memberlist, self_node)
+	// /* Print this node's member list */
+	// memlist.PrintMemberList(*memberlist, self_node)
 }

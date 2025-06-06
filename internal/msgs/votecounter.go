@@ -112,7 +112,7 @@ func SendVoteMessage(server *rpc.Client, msg VoteMessage) {
 	} else if voteAdded {
 		if DEBUG_MESSAGES {
 			fmt.Printf("OK: VoteMessage sent to node %d during term %d\n", msg.TargetID, msg.Term)
-		} else {
+			// } else {
 			fmt.Printf("VoteMessage sent to node %d during term %d\n", msg.TargetID, msg.Term)
 		}
 	} else {

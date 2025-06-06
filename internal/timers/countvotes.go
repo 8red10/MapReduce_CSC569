@@ -35,15 +35,20 @@ Count the votes addressed to self during this term - part of candidate role.
 Can become a leader (only scenario to become a leader).
 */
 func CountVotesTimerCallback(server *rpc.Client, selfNode *node.Node) {
-
-	fmt.Print("counting votes... ")
+	if DEBUG_MESSAGES {
+		fmt.Print("counting votes... ")
+	}
 	voteCount := msgs.CountVotes(server, selfNode.ID, selfNode.GetTerm())
-	fmt.Printf("got %d votes: ", voteCount)
+	if DEBUG_MESSAGES {
+		fmt.Printf("got %d votes: ", voteCount)
+	}
 	if voteCount > node.NUM_NODES/2 { // shared.NUM_NODES/2+1
 		/* Case 1: candidate received vote from majority of nodes, become leader */
 		BecomeLeader(server, selfNode)
 	} else {
 		/* Case 2: candidate didn't receive majority vote, wait for next election timeout */
-		fmt.Println("not becoming leader")
+		if DEBUG_MESSAGES {
+			fmt.Println("not becoming leader")
+		}
 	}
 }

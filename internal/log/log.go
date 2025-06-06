@@ -30,6 +30,26 @@ type Log struct {
 	Waitingentry LogEntry      // entry currently being appended, only really used by leader (followers use but immmediately commit)
 }
 
+func (l *Log) PrintLog() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	fmt.Printf("--------------------------------------\n")
+	fmt.Printf("Log for node %d, role %d\n", node.Selfnode.ID, node.Selfnode.GetRole())
+	fmt.Printf("Committed: (index: exists term)\n")
+	for i := range len(l.Committed) {
+		fmt.Printf("\t%d: \t%t \t%d\n", l.Committed[i].Index, l.Committed[i].Exists, l.Committed[i].Term)
+	}
+	fmt.Printf("Pending: (index: exists term)\n")
+	for i := range len(l.Pending) {
+		fmt.Printf("\t%d: \t%t \t%d\n", l.Pending[i].Index, l.Pending[i].Exists, l.Pending[i].Term)
+	}
+	fmt.Printf("Waitingentry: (index: exists term)\n")
+	fmt.Printf("\t%d: \t%t \t%d\n", l.Waitingentry.Index, l.Waitingentry.Exists, l.Waitingentry.Term)
+	fmt.Printf("--------------------------------------\n")
+
+}
+
 func NewLog() *Log {
 	committed := make([]LogEntry, 0, 10)
 	pending := make([]LogEntry, 0, 10)

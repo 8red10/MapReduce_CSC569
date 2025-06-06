@@ -65,7 +65,8 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 			LatestEntry: log.Selflog.GetWaitingEntry(),
 		}
 		msgs.SendLMResetEntry(server, lmm)
-		fmt.Printf("leader committing current entry = also reset LMC entry\n\n")
+		fmt.Printf("leader committing current entry = also reset LMC entry\n")
+		log.Selflog.PrintLog()
 	} else {
 		/* Case 2: leader didn't get majority approval yet, wait for next callback */
 		if DEBUG_MESSAGES {

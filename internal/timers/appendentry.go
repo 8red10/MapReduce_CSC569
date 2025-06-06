@@ -98,7 +98,7 @@ func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 	followerPrevEntry := log.Selflog.GetLastCommitted()
 
 	if DEBUG_MESSAGES {
-		fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)",
+		fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)\n",
 			followerPrevEntry.Exists, followerPrevEntry.GetIndex(), followerPrevEntry.GetTerm(),
 			leaderNewEntry.Exists, leaderNewEntry.GetIndex(), leaderNewEntry.GetTerm(),
 			leaderPrevEntry.Exists, leaderPrevEntry.GetIndex(), leaderPrevEntry.GetTerm(),
@@ -120,6 +120,10 @@ func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 			fmt.Println("self (fol.) log mismatch leader's, sending log error")
 			indicateLogError(server, aem)
 		}
+	} else if !leaderNewEntry.Exists && leaderPrevEntry.Exists && !followerPrevEntry.MatchesAndBothExist(leaderPrevEntry) {
+		/* Case 2: leader not trying to add new, leader has existing entries, but FPE doesn't match LPE */
+		fmt.Println("self (fol.) log mismatch leader's, LNE false, LPE true, is log err")
+		indicateLogError(server, aem)
 	} else {
 		if DEBUG_MESSAGES {
 			fmt.Println("self (follower) log up to date w leader's log")
@@ -138,6 +142,8 @@ func indicateLogMatch(server *rpc.Client, aem msgs.AppendEntryMessage) {
 
 	log.Selflog.StartAppendEntryProcess(aem.NewEntry)
 	log.Selflog.CommitWaitingEntry()
+
+	log.Selflog.PrintLog()
 }
 
 /* sends log error message */

@@ -63,6 +63,7 @@ func CheckEntireLogTimerCallback(server *rpc.Client, selfNode *node.Node) {
 		/* Replace self (follower) log w log in message (leader's log) */
 		log.Selflog.ReplaceCommitted(elm.Entries)
 		fmt.Println("updated self entire log from leader")
+		log.Selflog.PrintLog()
 
 		/* Immediately check for that log entry that started this error process */
 		CheckAppendEntriesTimer.Stop()

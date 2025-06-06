@@ -10,7 +10,7 @@ type LogEntry struct {
 
 func NewLogEntry(exists bool, data MapReduceData) LogEntry {
 	return LogEntry{
-		Exists: true,
+		Exists: exists,
 		index:  -1,
 		term:   -1,
 		Data:   data,

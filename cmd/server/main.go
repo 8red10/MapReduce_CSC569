@@ -1,6 +1,9 @@
 package main
 
 func main() {
+	filePath, port := parseFlags()
 	registerRPCStructs()
-	handleRPC()
+	createMRServer(filePath)
+	// handleRPC()
+	serveConnections(filePath, port)
 }

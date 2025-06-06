@@ -5,7 +5,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -95,7 +95,7 @@ func CheckAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) bo
 func sendResponsetoAEM(server *rpc.Client, aem msgs.AppendEntryMessage) {
 	leaderPrevEntry := aem.PreviousEntry
 	leaderNewEntry := aem.NewEntry
-	followerPrevEntry := log.Selflog.GetLastCommitted()
+	followerPrevEntry := logs.Selflog.GetLastCommitted()
 
 	if DEBUG_MESSAGES {
 		fmt.Printf("FPE=(%t %d %d), LNE=(%t %d %d), LPE=(%t %d %d)\n",
@@ -140,10 +140,10 @@ func indicateLogMatch(server *rpc.Client, aem msgs.AppendEntryMessage) {
 	}
 	msgs.SendLogMatchMessage(server, msg)
 
-	log.Selflog.StartAppendEntryProcess(aem.NewEntry)
-	log.Selflog.CommitWaitingEntry()
+	logs.Selflog.StartAppendEntryProcess(aem.NewEntry)
+	logs.Selflog.CommitWaitingEntry()
 
-	log.Selflog.PrintLog()
+	logs.Selflog.PrintLog()
 }
 
 /* sends log error message */
@@ -202,8 +202,8 @@ func SendAppendEntriesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 				SourceID:      selfNode.ID,
 				Term:          selfNode.GetTerm(),
 				Exists:        true, // need exists
-				PreviousEntry: log.Selflog.GetLastCommitted(),
-				NewEntry:      log.Selflog.GetWaitingEntry(),
+				PreviousEntry: logs.Selflog.GetLastCommitted(),
+				NewEntry:      logs.Selflog.GetWaitingEntry(),
 			}
 			// fmt.Printf("SAETC w LNE %t %d %d, LPE %t %d %d\n",
 			// 	aem.PreviousEntry.Exists, aem.PreviousEntry.Index, aem.PreviousEntry.Term,

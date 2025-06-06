@@ -6,18 +6,18 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
 /* message - leader sends as a heartbeat to assert leadership to followers and for followers to add to their logs */
 type AppendEntryMessage struct {
-	TargetID      int          // id of node to send message to
-	SourceID      int          // id of leader sending the AppendEntry proposal
-	Term          int          // current term of leader
-	Exists        bool         // when reading: true if a AppendEntryMessage exists in server struct, false otherwise
-	PreviousEntry log.LogEntry // previously committed log entry for consistency checks
-	NewEntry      log.LogEntry // entry being proposed to be committed
+	TargetID      int           // id of node to send message to
+	SourceID      int           // id of leader sending the AppendEntry proposal
+	Term          int           // current term of leader
+	Exists        bool          // when reading: true if a AppendEntryMessage exists in server struct, false otherwise
+	PreviousEntry logs.LogEntry // previously committed log entry for consistency checks
+	NewEntry      logs.LogEntry // entry being proposed to be committed
 }
 
 /* server struct - holds all append entry messages for followers to read */

@@ -6,16 +6,16 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
 /* message - for passing leader's entire log to fix follower log */
 type EntireLogMessage struct {
-	TargetID int            // id of follower to send whole log to
-	SourceID int            // id of leader
-	Entries  []log.LogEntry // whole log of the leader - use GetDeepCopy to fill this attribute
-	Exists   bool           // when reading: true if message exists on server, false otherwise
+	TargetID int             // id of follower to send whole log to
+	SourceID int             // id of leader
+	Entries  []logs.LogEntry // whole log of the leader - use GetDeepCopy to fill this attribute
+	Exists   bool            // when reading: true if message exists on server, false otherwise
 }
 
 /* server struct - holds all entire log messages for followers to read */

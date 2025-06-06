@@ -5,7 +5,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -27,7 +27,7 @@ func BecomeFollower(selfNode *node.Node, newTerm int) {
 		CountLogMatchesTimer.Stop()   // only need to stop counting log matches if coming from leader
 		CheckLogErrorTimer.Stop()     // only need to stop if coming from leader
 		CheckLogEntryTimer.Stop()     // only need to stop if coming from leader
-		log.Selflog.ClearPending()    // don't carry the pending to follower status
+		logs.Selflog.ClearPending()   // don't carry the pending to follower status
 	}
 	if role := selfNode.GetRole(); role == CANDIDATE {
 		CountVotesTimer.Stop() // only need to stop count votes if coming from candidate
@@ -122,9 +122,9 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 
 	lem := msgs.LogEntryMessage{
 		Exists: true,
-		Entry: log.NewLogEntry(
+		Entry: logs.NewLogEntry(
 			true,
-			log.NewMapReduceData(-1),
+			logs.NewMapReduceData(-1),
 		),
 	}
 	time.AfterFunc(
@@ -134,9 +134,9 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 }
 
 /* leader function, add entry to log */
-func LeaderStartAddLogEntryProcess(server *rpc.Client, selfNode *node.Node, entry log.LogEntry) {
+func LeaderStartAddLogEntryProcess(server *rpc.Client, selfNode *node.Node, entry logs.LogEntry) {
 	if selfNode.GetRole() == LEADER && entry.Exists {
-		newWaitingEntry := log.Selflog.StartAppendEntryProcess(entry)
+		newWaitingEntry := logs.Selflog.StartAppendEntryProcess(entry)
 		fmt.Println("leader starting add log entry process - forced")
 		if newWaitingEntry {
 			/* Update the latest entry in LogMatchCounter struct */

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
@@ -85,7 +85,7 @@ func createSelfTable(server *rpc.Client, id int) error {
 }
 
 func createSelfLog() {
-	log.Selflog = log.NewLog()
+	logs.Selflog = logs.NewLog()
 	fmt.Println("Success: created self log.")
 }
 
@@ -118,9 +118,9 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 	/* TESTING = after 50 ms, add to self log - see what happens */
 	lem := msgs.LogEntryMessage{
 		Exists: true,
-		Entry: log.NewLogEntry(
+		Entry: logs.NewLogEntry(
 			true,
-			log.NewMapReduceData(-1),
+			logs.NewMapReduceData(-1),
 		),
 	}
 	time.AfterFunc(
@@ -137,9 +137,9 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 func sendLEM(server *rpc.Client, msg msgs.LogEntryMessage) {
 	lem := msgs.LogEntryMessage{
 		Exists: true,
-		Entry: log.NewLogEntry(
+		Entry: logs.NewLogEntry(
 			true,
-			log.NewMapReduceData(-1),
+			logs.NewMapReduceData(-1),
 		),
 	}
 	msgs.SendLogEntryMessage(server, lem)

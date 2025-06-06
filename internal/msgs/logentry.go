@@ -6,15 +6,15 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
 /* message - holds a log entry for leader to add to log */
 type LogEntryMessage struct {
-	Entry       log.LogEntry // entry for leader to add to log
-	Exists      bool         // when reading: true if error message exists in server struct, false otherwise
-	MorePresent bool         // when reading: true if more messages besides this one exist in server struct, false otherwise
+	Entry       logs.LogEntry // entry for leader to add to log
+	Exists      bool          // when reading: true if error message exists in server struct, false otherwise
+	MorePresent bool          // when reading: true if more messages besides this one exist in server struct, false otherwise
 }
 
 /* server struct - holds messages for leader to read - read via sourceID */

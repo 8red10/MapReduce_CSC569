@@ -17,7 +17,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -50,7 +50,7 @@ func CheckLogErrorTimerCallback(server *rpc.Client, selfNode *node.Node) {
 			elm := msgs.EntireLogMessage{
 				TargetID: lem.SourceID,
 				SourceID: selfNode.ID,
-				Entries:  log.Selflog.GetCommittedCopy(),
+				Entries:  logs.Selflog.GetCommittedCopy(),
 				Exists:   true,
 			}
 			msgs.SendEntireLogMessage(server, elm)

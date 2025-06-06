@@ -32,7 +32,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -61,9 +61,9 @@ func CheckEntireLogTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	elm := msgs.ReadEntireLogMessage(server, selfNode.ID)
 	if elm.Exists {
 		/* Replace self (follower) log w log in message (leader's log) */
-		log.Selflog.ReplaceCommitted(elm.Entries)
+		logs.Selflog.ReplaceCommitted(elm.Entries)
 		fmt.Println("updated self entire log from leader")
-		log.Selflog.PrintLog()
+		logs.Selflog.PrintLog()
 
 		/* Immediately check for that log entry that started this error process */
 		CheckAppendEntriesTimer.Stop()

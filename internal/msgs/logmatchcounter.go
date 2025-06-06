@@ -6,7 +6,7 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
@@ -17,23 +17,23 @@ type LogMatchMessage struct {
 	// need the new entry here for validation and reset of LogMatchCounter ?
 	// need some sort of validation here bc don't want late LogMatchCounter to interfere w current
 	// Index int // latest index that the follower's log matches up to leader log
-	LatestEntry log.LogEntry // entry being approved by follower
+	LatestEntry logs.LogEntry // entry being approved by follower
 }
 
 /* server struct - counts follower approvals for leader's AppendEntry proposal */
 type LogMatchCounter struct {
 	mu *sync.RWMutex // enables thread-safe operations
 	// Index int           // latest index in log being matched
-	LatestEntry log.LogEntry // entry being approved by followers
-	Mailbox     map[int]bool // map[sourceID]source_node_approval_of_this_entry
+	LatestEntry logs.LogEntry // entry being approved by followers
+	Mailbox     map[int]bool  // map[sourceID]source_node_approval_of_this_entry
 }
 
 func NewLogMatchCounter() *LogMatchCounter {
 	return &LogMatchCounter{
 		mu: new(sync.RWMutex),
-		LatestEntry: log.NewLogEntry(
+		LatestEntry: logs.NewLogEntry(
 			false,
-			log.NewMapReduceData(-1),
+			logs.NewMapReduceData(-1),
 		),
 		Mailbox: make(map[int]bool),
 	}
@@ -172,7 +172,7 @@ server = RPC connection to server.
 sourceID = self node ID.
 entry = entry to count approval for.
 */
-func CountLogMatches(server *rpc.Client, sourceID int, entry log.LogEntry) int {
+func CountLogMatches(server *rpc.Client, sourceID int, entry logs.LogEntry) int {
 
 	lmm := LogMatchMessage{SourceID: sourceID, LatestEntry: entry}
 	count := 0

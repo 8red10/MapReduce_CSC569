@@ -20,7 +20,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/8red10/MapReduce_CSC569/internal/log"
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
@@ -52,21 +52,21 @@ func CountLogMatchesTimerCallback(server *rpc.Client, selfNode *node.Node) {
 	if DEBUG_MESSAGES {
 		fmt.Println("counting log matches...")
 	}
-	matchCount := msgs.CountLogMatches(server, selfNode.ID, log.Selflog.Waitingentry)
+	matchCount := msgs.CountLogMatches(server, selfNode.ID, logs.Selflog.Waitingentry)
 	if DEBUG_MESSAGES {
 		fmt.Printf("got %d matches: ", matchCount)
 	}
 	countAgain := true
 	if matchCount > node.NUM_NODES/2 {
 		/* Case 1: leader got majority approval for entry, commit to log if haven't already committed */
-		countAgain = log.Selflog.CommitWaitingEntry()
+		countAgain = logs.Selflog.CommitWaitingEntry()
 		lmm := msgs.LogMatchMessage{
 			SourceID:    selfNode.ID,
-			LatestEntry: log.Selflog.GetWaitingEntry(),
+			LatestEntry: logs.Selflog.GetWaitingEntry(),
 		}
 		msgs.SendLMResetEntry(server, lmm)
 		fmt.Printf("leader committing current entry = also reset LMC entry\n")
-		log.Selflog.PrintLog()
+		logs.Selflog.PrintLog()
 	} else {
 		/* Case 2: leader didn't get majority approval yet, wait for next callback */
 		if DEBUG_MESSAGES {

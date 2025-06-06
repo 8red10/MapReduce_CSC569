@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/8red10/MapReduce_CSC569/internal/log"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
@@ -113,6 +114,39 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 	timers.CountLogMatchesTimer.Stop()
 	timers.StartCheckLogEntryTimer(server, node.Selfnode)
 	timers.CheckLogEntryTimer.Stop()
+
+	/* TESTING = after 50 ms, add to self log - see what happens */
+	lem := msgs.LogEntryMessage{
+		Exists: true,
+		Entry: log.NewLogEntry(
+			true,
+			log.NewMapReduceData(-1),
+		),
+	}
+	time.AfterFunc(
+		time.Millisecond*time.Duration(50), // after 50 ms
+		func() { msgs.SendLogEntryMessage(server, lem) },
+	)
+
+	time.AfterFunc(
+		time.Millisecond*time.Duration(5000), // after 5s
+		func() { sendLEM(server, lem) },
+	)
+}
+
+func sendLEM(server *rpc.Client, msg msgs.LogEntryMessage) {
+	lem := msgs.LogEntryMessage{
+		Exists: true,
+		Entry: log.NewLogEntry(
+			true,
+			log.NewMapReduceData(-1),
+		),
+	}
+	msgs.SendLogEntryMessage(server, lem)
+	time.AfterFunc(
+		time.Millisecond*time.Duration(5000), // after 5s
+		func() { sendLEM(server, msg) },
+	)
 }
 
 func runUntilFailure(id int) {

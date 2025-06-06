@@ -98,6 +98,7 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	CheckEntireLogTimer.Stop() // auto starts (then stops) this timer in the beginning so don't need to protect this stop
 	// StartCountLogMatchesTimer(server, selfNode) // should only start when an entry is being proposed
 	StartCheckLogErrorTimer(server, selfNode)
+	ResetCheckLogEntryTimer()
 	selfNode.UpdateRoleTo(LEADER)
 	if DEBUG_MESSAGES {
 		fmt.Printf(" at term %d", selfNode.GetTerm())
@@ -105,18 +106,30 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	}
 	go SendAppendEntriesTimerCallback(server, selfNode)
 
-	/* TESTING = after 50 ms, add to self log - see what happens */
-	entry := log.NewLogEntry(
-		true,
-		log.NewMapReduceData(-1),
-	)
+	// /* TESTING = after 50 ms, add to self log - see what happens */
+	// entry := log.NewLogEntry(
+	// 	true,
+	// 	log.NewMapReduceData(-1),
+	// )
+	// time.AfterFunc(
+	// 	time.Millisecond*time.Duration(50), // after 50 ms
+	// 	func() { LeaderStartAddLogEntryProcess(server, selfNode, entry) },
+	// )
+	// time.AfterFunc(
+	// 	time.Millisecond*time.Duration(100), // after 100 ms
+	// 	func() { LeaderStartAddLogEntryProcess(server, selfNode, entry) },
+	// )
+
+	lem := msgs.LogEntryMessage{
+		Exists: true,
+		Entry: log.NewLogEntry(
+			true,
+			log.NewMapReduceData(-1),
+		),
+	}
 	time.AfterFunc(
 		time.Millisecond*time.Duration(50), // after 50 ms
-		func() { LeaderStartAddLogEntryProcess(server, selfNode, entry) },
-	)
-	time.AfterFunc(
-		time.Millisecond*time.Duration(100), // after 100 ms
-		func() { LeaderStartAddLogEntryProcess(server, selfNode, entry) },
+		func() { msgs.SendLogEntryMessage(server, lem) },
 	)
 }
 

@@ -1,1 +1,6 @@
 .DS_Store
+cmd/server/server
+cmd/server/server.exe
+cmd/client/client
+cmd/client/client.exe
+testplan.py

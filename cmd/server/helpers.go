@@ -22,6 +22,7 @@ func registerRPCStructs() {
 	rpc.Register(msgs.NewLogMatchCounter())
 	rpc.Register(msgs.NewLogErrorMessages())
 	rpc.Register(msgs.NewEntireLogMessages())
+	rpc.Register(msgs.NewLogEntryMessages())
 }
 
 /* Handle RPC requests */

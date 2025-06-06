@@ -26,6 +26,7 @@ func BecomeFollower(selfNode *node.Node, newTerm int) {
 		SendAppendEntriesTimer.Stop() // only need to stop sending aem if transitioning role from leader
 		CountLogMatchesTimer.Stop()   // only need to stop counting log matches if coming from leader
 		CheckLogErrorTimer.Stop()     // only need to stop if coming from leader
+		CheckLogEntryTimer.Stop()     // only need to stop if coming from leader
 		log.Selflog.ClearPending()    // don't carry the pending to follower status
 	}
 	if role := selfNode.GetRole(); role == CANDIDATE {

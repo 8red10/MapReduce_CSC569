@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"maps"
+
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
@@ -80,6 +82,20 @@ func (m *MemberList) Get(payload int, reply *node.Node) error {
 
 	/* Indicate success */
 	return nil
+}
+
+/* Returns a safe copy of the current state of the table */
+func (m *MemberList) SafeCopy() MemberList {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	newMembers := make(map[int]node.Node)
+	maps.Copy(newMembers, m.Members)
+
+	return MemberList{
+		mu:      new(sync.RWMutex),
+		Members: newMembers,
+	}
 }
 
 /* Print this node's current member list */

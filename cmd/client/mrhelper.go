@@ -67,6 +67,7 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 		/* Get the next map task */
 		var st logs.State
 		err := server.Call("MRServer.RequestMapTask", msg, &st)
+		go msgs.StartAddStateToLog(server, st)
 		if err != nil {
 			log.Printf("RequestMapTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
@@ -107,6 +108,7 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 			}
 			var reply logs.State
 			err = server.Call("MRServer.SubmitMapResult", args, &reply)
+			go msgs.StartAddStateToLog(server, reply)
 			if err != nil {
 				log.Fatalf("SubmitMapResult RPC error: %v", err)
 			}
@@ -132,6 +134,7 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 		/* Get the next reduce task */
 		var st logs.State
 		err := server.Call("MRServer.RequestReduceTask", msg, &st)
+		go msgs.StartAddStateToLog(server, st)
 		if err != nil {
 			log.Printf("RequestReduceTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
@@ -164,6 +167,7 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 			}
 			var reply logs.State
 			err = server.Call("MRServer.SubmitReduceResult", args, &reply)
+			go msgs.StartAddStateToLog(server, reply)
 			if err != nil {
 				log.Fatalf("SubmitReduceResult RPC error: %v", err)
 			}

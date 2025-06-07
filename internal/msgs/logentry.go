@@ -79,6 +79,15 @@ func (l *LogEntryMessages) Listen(sourceID int, reply *LogEntryMessage) error {
 	return nil
 }
 
+/* Start the process of sending MR state in a log entry to the leader for them to add it to the log */
+func StartAddStateToLog(server *rpc.Client, st logs.State) {
+	msg := LogEntryMessage{
+		Entry:  logs.NewLogEntry(true, st),
+		Exists: true,
+	}
+	SendLogEntryMessage(server, msg)
+}
+
 /*
 Send log entry message to leader - basically asks the leader to add the attached entry to the log
 */

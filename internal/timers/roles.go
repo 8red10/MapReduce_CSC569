@@ -123,7 +123,8 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	// 	Exists: true,
 	// 	Entry: logs.NewLogEntry(
 	// 		true,
-	// 		logs.NewMapReduceData(-1),
+	// 		// logs.NewMapReduceData(-1),
+	// 		logs.State{},
 	// 	),
 	// }
 	// time.AfterFunc(

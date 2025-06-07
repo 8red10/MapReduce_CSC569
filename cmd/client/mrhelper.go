@@ -11,11 +11,10 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/8red10/MapReduce_CSC569/internal/memlist"
 	"github.com/8red10/MapReduce_CSC569/internal/mr"
-)
-
-const (
-	NUM_NODES = 8
+	"github.com/8red10/MapReduce_CSC569/internal/msgs"
+	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
 /* Usage: client -id:<int> -server=localhost:9005 */
@@ -24,8 +23,8 @@ func parseFlags() (int, string) {
 	serverAddr := flag.String("server", "localhost:9005", "TCP hostname:port to connect to (e.g. localhost:9005)")
 	flag.Parse()
 
-	if *id < 1 || *id > NUM_NODES {
-		log.Printf("ID %d out of range [1,%d]\n", *id, NUM_NODES)
+	if *id < 1 || *id > node.NUM_NODES {
+		log.Printf("ID %d out of range [1,%d]\n", *id, node.NUM_NODES)
 		// log.Fatalf("Usage: client -id:<int> -server=localhost:9005") // no makefile
 		log.Fatalf("Usage: client ID:<int> SERVER=localhost:9005") // with makefile
 	}
@@ -44,18 +43,20 @@ func getServerConnection(serverAddr string) *rpc.Client {
 }
 
 func performMR(server *rpc.Client, id int) {
-	performMap(server)
-	performReduce(server)
+	performMap(server, id)
+	performReduce(server, id)
 	printOutput(server, id)
 }
 
 /* PHASE 1: loop, keep requesting map tasks and submitting results */
-func performMap(server *rpc.Client) {
+func performMap(server *rpc.Client, id int) {
 	/* Loop: keep calling RequestMapTask until it returns Status != "mapping" or no ChunkIdx. */
 	for {
+		/* Create a gossip message to pass id and self table */
+		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
 		/* Get the next map task */
 		var st mr.State
-		err := server.Call("MRServer.RequestMapTask", struct{}{}, &st)
+		err := server.Call("MRServer.RequestMapTask", msg, &st)
 		if err != nil {
 			log.Printf("RequestMapTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
@@ -63,7 +64,7 @@ func performMap(server *rpc.Client) {
 		}
 
 		/* Log whatever the server sent us */
-		log.Printf("[map] State=%+v\n", st)
+		fmt.Printf("[map] State=%+v\n", st)
 
 		/* If we got a real chunk to process */
 		if st.Status == "mapping" && st.ChunkIdx >= 0 && st.FilePath != "" {
@@ -109,12 +110,14 @@ func performMap(server *rpc.Client) {
 }
 
 /* PHASE 2: loop, keep requesting reduce tasks and submitting results */
-func performReduce(server *rpc.Client) {
+func performReduce(server *rpc.Client, id int) {
 	/* Loop: keep calling RequestReduceTask until it returns Status != "reducing" or key == "". */
 	for {
+		/* Create a gossip message to pass id and self table */
+		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
 		/* Get the next reduce task */
 		var st mr.State
-		err := server.Call("MRServer.RequestReduceTask", struct{}{}, &st)
+		err := server.Call("MRServer.RequestReduceTask", msg, &st)
 		if err != nil {
 			log.Printf("RequestReduceTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
@@ -124,7 +127,7 @@ func performReduce(server *rpc.Client) {
 		/* If we are still waiting on map tasks to finish */
 		if st.Status == "mapping" {
 			/* Go back to map and check a map task leftover from a failed node */
-			performMap(server)
+			performMap(server, id)
 			continue // go back to the start of this for loop after checking
 		}
 

@@ -6,6 +6,9 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/8red10/MapReduce_CSC569/internal/memlist"
+	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 )
 
 // KeyValue is used to pass intermediate (word, count) pairs from a mapper
@@ -20,6 +23,7 @@ type KeyValue struct {
 type MapResult struct {
 	ChunkIdx int
 	KVs      []KeyValue
+	Table    memlist.MemberList
 }
 
 // ReduceResult is the argument to SubmitReduceResult: it gives a single
@@ -27,6 +31,7 @@ type MapResult struct {
 type ReduceResult struct {
 	Key   string
 	Value int
+	Table memlist.MemberList
 }
 
 // State is returned (and only ever returned) from every RPC.
@@ -154,10 +159,26 @@ func NewMRServer(filePath string) (*MRServer, error) {
 	}, nil
 }
 
+/* check if node assigned subtask has since failed */
+func checkAssignment(st *subtask, table memlist.MemberList) {
+	if st.Assigned {
+		// var n node.Node
+		// table.Get(st.ID, &n)
+		n := table.Members[st.ID]
+		if !n.Alive {
+			st.Assigned = false
+			st.ID = -1
+			fmt.Printf("unassigned subtask from node %d\n", n.ID)
+		}
+	}
+}
+
 // computeTaskCounts returns how many map‐chunks or reduce‐keys remain φpending (not yet Done).
-func (mr *MRServer) computeTaskCounts() (mapPending, reducePending int) {
+func (mr *MRServer) computeTaskCounts(table memlist.MemberList) (mapPending, reducePending int) {
 	for _, st := range mr.job.Subtasks {
 		if !st.Done {
+			checkAssignment(st, table)
+
 			if mr.job.Phase == phaseMapping {
 				// still in mapping: only count map‐chunks
 				if st.Key == "" {
@@ -184,6 +205,7 @@ func (mr *MRServer) publishReduceTasks() {
 			ChunkIdx: -1,
 			Key:      word,
 			Values:   counts, // will be a slice of ints from every mapper
+			ID:       -1,
 			Assigned: false,
 			Done:     false,
 		})
@@ -207,13 +229,15 @@ func (mr *MRServer) publishReduceTasks() {
 //
 // Once every map‐chunk is Done (server ↦ publishReduceTasks), further calls
 // to RequestMapTask return State{Status=“reducing” or “done”, MapTasksPending=0, …} with no FilePath/ChunkIdx.
-func (mr *MRServer) RequestMapTask(_ struct{}, reply *State) error {
+func (mr *MRServer) RequestMapTask(payload msgs.GossipMessage, reply *State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
+	fmt.Printf("node %d in RequestMapTask\n", payload.TargetID)
+
 	// If we’ve moved on to “reducing,” just return the new status:
 	if mr.job.Phase != phaseMapping {
-		mapPending, redPending := mr.computeTaskCounts()
+		mapPending, redPending := mr.computeTaskCounts(payload.Table)
 		reply.Status = mr.job.Phase
 		reply.MapTasksPending = mapPending
 		reply.ReduceTasksPending = redPending
@@ -228,7 +252,8 @@ func (mr *MRServer) RequestMapTask(_ struct{}, reply *State) error {
 	for _, st := range mr.job.Subtasks {
 		if st.Key == "" && !st.Assigned && !st.Done {
 			st.Assigned = true
-			mapPending, _ := mr.computeTaskCounts()
+			st.ID = payload.TargetID
+			mapPending, _ := mr.computeTaskCounts(payload.Table)
 			reply.Status = phaseMapping
 			reply.MapTasksPending = mapPending
 			reply.ReduceTasksPending = 0
@@ -242,7 +267,7 @@ func (mr *MRServer) RequestMapTask(_ struct{}, reply *State) error {
 
 	// No unassigned map‐chunks remain → either in‐flight or Done.
 	// Check if any are still in‐flight (Assigned but not Done). If so, just report counts:
-	mapPending, _ := mr.computeTaskCounts()
+	mapPending, _ := mr.computeTaskCounts(payload.Table)
 	if mapPending > 0 {
 		// still waiting for some mappers to finish
 		reply.Status = phaseMapping
@@ -257,7 +282,7 @@ func (mr *MRServer) RequestMapTask(_ struct{}, reply *State) error {
 
 	// All map‐chunks are Done.  Time to publish reduce tasks (once).
 	mr.publishReduceTasks()
-	_, reducePending := mr.computeTaskCounts()
+	_, reducePending := mr.computeTaskCounts(payload.Table)
 
 	reply.Status = phaseReducing
 	reply.MapTasksPending = 0
@@ -291,7 +316,7 @@ func (mr *MRServer) SubmitMapResult(args MapResult, reply *State) error {
 	}
 
 	// Check if any map‐chunks still pending or in‐flight:
-	mapPending, _ := mr.computeTaskCounts()
+	mapPending, _ := mr.computeTaskCounts(args.Table)
 	if mapPending > 0 {
 		// Still mapping
 		reply.Status = phaseMapping
@@ -309,7 +334,7 @@ func (mr *MRServer) SubmitMapResult(args MapResult, reply *State) error {
 		mr.publishReduceTasks()
 	}
 
-	_, reducePending := mr.computeTaskCounts()
+	_, reducePending := mr.computeTaskCounts(args.Table)
 	reply.Status = phaseReducing
 	reply.MapTasksPending = 0
 	reply.ReduceTasksPending = reducePending
@@ -333,14 +358,14 @@ func (mr *MRServer) SubmitMapResult(args MapResult, reply *State) error {
 //
 // Once every reduce‐key is Done, the server flips to “done,” and future calls
 // just return Status=“done” with both pending counts == 0.
-func (mr *MRServer) RequestReduceTask(_ struct{}, reply *State) error {
+func (mr *MRServer) RequestReduceTask(payload msgs.GossipMessage, reply *State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
 	// If we’re not yet in reducing, or we’re already done, handle those cases:
 	if mr.job.Phase == phaseMapping {
 		// mapping still in progress (server hasn’t yet published reduce‐tasks)
-		mapPending, _ := mr.computeTaskCounts()
+		mapPending, _ := mr.computeTaskCounts(payload.Table)
 		reply.Status = phaseMapping
 		reply.MapTasksPending = mapPending
 		reply.ReduceTasksPending = 0
@@ -365,7 +390,8 @@ func (mr *MRServer) RequestReduceTask(_ struct{}, reply *State) error {
 	for _, st := range mr.job.Subtasks {
 		if st.Key != "" && !st.Assigned && !st.Done {
 			st.Assigned = true
-			_, reducePending := mr.computeTaskCounts()
+			st.ID = payload.TargetID
+			_, reducePending := mr.computeTaskCounts(payload.Table)
 			reply.Status = phaseReducing
 			reply.MapTasksPending = 0
 			reply.ReduceTasksPending = reducePending
@@ -378,7 +404,7 @@ func (mr *MRServer) RequestReduceTask(_ struct{}, reply *State) error {
 	}
 
 	// No unassigned reduce‐keys.  Check if any are still in‐flight:
-	_, reducePending := mr.computeTaskCounts()
+	_, reducePending := mr.computeTaskCounts(payload.Table)
 	if reducePending > 0 {
 		reply.Status = phaseReducing
 		reply.MapTasksPending = 0
@@ -421,7 +447,7 @@ func (mr *MRServer) SubmitReduceResult(args ReduceResult, reply *State) error {
 	}
 
 	// Check if any reduce‐keys remain:
-	_, reducePending := mr.computeTaskCounts()
+	_, reducePending := mr.computeTaskCounts(args.Table)
 	if reducePending > 0 {
 		reply.Status = phaseReducing
 		reply.MapTasksPending = 0

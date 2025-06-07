@@ -55,7 +55,7 @@ func getServerConnection(serverAddr string) *rpc.Client {
 func performMR(server *rpc.Client, id int, verboseFlag bool) {
 	performMap(server, id, verboseFlag)
 	performReduce(server, id, verboseFlag)
-	printOutput(server, id)
+	printOutput(server, id, verboseFlag)
 }
 
 /* PHASE 1: loop, keep requesting map tasks and submitting results */
@@ -63,16 +63,17 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 	/* Loop: keep calling RequestMapTask until it returns Status != "mapping" or no ChunkIdx. */
 	for {
 		/* Create a gossip message to pass id and self table */
-		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
+		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: memlist.Selflist.SafeCopy()}
 		/* Get the next map task */
 		var st logs.State
 		err := server.Call("MRServer.RequestMapTask", msg, &st)
-		go msgs.StartAddStateToLog(server, st)
 		if err != nil {
 			log.Printf("RequestMapTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
 			continue // go back to the start of the for loop
 		}
+		go msgs.StartAddStateToLog(server, st)
+		// time.Sleep(time.Second)
 
 		/* Log whatever the server sent us */
 		if verboseFlag {
@@ -108,10 +109,11 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 			}
 			var reply logs.State
 			err = server.Call("MRServer.SubmitMapResult", args, &reply)
-			go msgs.StartAddStateToLog(server, reply)
 			if err != nil {
 				log.Fatalf("SubmitMapResult RPC error: %v", err)
 			}
+			go msgs.StartAddStateToLog(server, reply)
+			// time.Sleep(time.Second)
 			if verboseFlag {
 				log.Printf("[map] after SubmitMapResult → State=%+v\n", reply)
 			}
@@ -130,16 +132,17 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 	/* Loop: keep calling RequestReduceTask until it returns Status != "reducing" or key == "". */
 	for {
 		/* Create a gossip message to pass id and self table */
-		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
+		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: memlist.Selflist.SafeCopy()}
 		/* Get the next reduce task */
 		var st logs.State
 		err := server.Call("MRServer.RequestReduceTask", msg, &st)
-		go msgs.StartAddStateToLog(server, st)
 		if err != nil {
 			log.Printf("RequestReduceTask RPC error: %v", err)
 			time.Sleep(200 * time.Millisecond)
 			continue // go back to the start of this for loop
 		}
+		go msgs.StartAddStateToLog(server, st)
+		// time.Sleep(time.Second)
 
 		/* If we are still waiting on map tasks to finish */
 		if st.Status == "mapping" {
@@ -167,10 +170,11 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 			}
 			var reply logs.State
 			err = server.Call("MRServer.SubmitReduceResult", args, &reply)
-			go msgs.StartAddStateToLog(server, reply)
 			if err != nil {
 				log.Fatalf("SubmitReduceResult RPC error: %v", err)
 			}
+			go msgs.StartAddStateToLog(server, reply)
+			// time.Sleep(time.Second)
 			if verboseFlag {
 				log.Printf("[reduce] after SubmitReduceResult → State=%+v\n", reply)
 			}
@@ -181,7 +185,7 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 
 		/* If server says st.Status == "done" (or no Key), we’re completely finished */
 		if st.Status == "done" {
-			log.Println("All done! Exiting.")
+			log.Println("MapReduce all done! Exiting.")
 			break // exit the for loop = done with mapreduce
 		}
 
@@ -221,13 +225,15 @@ func readLineWords(filePath string, targetIdx int) ([]string, error) {
 }
 
 /* Get the final output from server and print it */
-func printOutput(server *rpc.Client, id int) {
+func printOutput(server *rpc.Client, id int, verboseFlag bool) {
 	var finalCounts map[string]int
 	err := server.Call("MRServer.GetFinalOutput", id, &finalCounts)
 	if err != nil {
 		log.Fatalf("GetFinalOutput RPC error: %v", err)
 	}
-	for word, count := range finalCounts {
-		fmt.Printf("%s: %d\n", word, count)
+	if verboseFlag {
+		for word, count := range finalCounts {
+			fmt.Printf("%s: %d\n", word, count)
+		}
 	}
 }

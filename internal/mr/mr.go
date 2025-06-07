@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
 )
@@ -34,29 +35,31 @@ type ReduceResult struct {
 	Table memlist.MemberList
 }
 
-// State is returned (and only ever returned) from every RPC.
-// Clients log all of State’s fields to see “progress.”
-type State struct {
-	// “mapping” → still handing out map‐chunks
-	// “reducing” → still handing out reduce‐keys
-	// “done”     → everything finished
-	Status string
+/* MOVED TO LOGS PACKAGE FOR LOG ENTRY INCORPORATION */
 
-	// How many map‐chunks remain unassigned or in‐flight?
-	MapTasksPending int
-	// How many reduce‐keys remain unassigned or in‐flight?
-	ReduceTasksPending int
+// // State is returned (and only ever returned) from every RPC.
+// // Clients log all of State’s fields to see “progress.”
+// type State struct {
+// 	// “mapping” → still handing out map‐chunks
+// 	// “reducing” → still handing out reduce‐keys
+// 	// “done”     → everything finished
+// 	Status string
 
-	// If the server just handed you a *map* task, FilePath != "" and
-	// ChunkIdx ≥ 0.  Otherwise ChunkIdx == –1 and FilePath == "".
-	FilePath string
-	ChunkIdx int
+// 	// How many map‐chunks remain unassigned or in‐flight?
+// 	MapTasksPending int
+// 	// How many reduce‐keys remain unassigned or in‐flight?
+// 	ReduceTasksPending int
 
-	// If the server just handed you a *reduce* task, Key != "" and
-	// Values is the slice of counts to sum.  Otherwise Key == "".
-	Key    string
-	Values []int
-}
+// 	// If the server just handed you a *map* task, FilePath != "" and
+// 	// ChunkIdx ≥ 0.  Otherwise ChunkIdx == –1 and FilePath == "".
+// 	FilePath string
+// 	ChunkIdx int
+
+// 	// If the server just handed you a *reduce* task, Key != "" and
+// 	// Values is the slice of counts to sum.  Otherwise Key == "".
+// 	Key    string
+// 	Values []int
+// }
 
 // -----------------------------------------------------------------------
 // internal types and constants:
@@ -229,7 +232,7 @@ func (mr *MRServer) publishReduceTasks() {
 //
 // Once every map‐chunk is Done (server ↦ publishReduceTasks), further calls
 // to RequestMapTask return State{Status=“reducing” or “done”, MapTasksPending=0, …} with no FilePath/ChunkIdx.
-func (mr *MRServer) RequestMapTask(payload msgs.GossipMessage, reply *State) error {
+func (mr *MRServer) RequestMapTask(payload msgs.GossipMessage, reply *logs.State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -296,7 +299,7 @@ func (mr *MRServer) RequestMapTask(payload msgs.GossipMessage, reply *State) err
 // They send back every KeyValue (word→count within that one line).
 // The server merges these into Intermediate[word] = append(...).
 // In the reply State, we update counts and possibly flip to “reducing” if all map‐chunks are Done.
-func (mr *MRServer) SubmitMapResult(args MapResult, reply *State) error {
+func (mr *MRServer) SubmitMapResult(args MapResult, reply *logs.State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -356,7 +359,7 @@ func (mr *MRServer) SubmitMapResult(args MapResult, reply *State) error {
 //
 // Once every reduce‐key is Done, the server flips to “done,” and future calls
 // just return Status=“done” with both pending counts == 0.
-func (mr *MRServer) RequestReduceTask(payload msgs.GossipMessage, reply *State) error {
+func (mr *MRServer) RequestReduceTask(payload msgs.GossipMessage, reply *logs.State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -429,7 +432,7 @@ func (mr *MRServer) RequestReduceTask(payload msgs.GossipMessage, reply *State) 
 // SubmitReduceResult is called by a reducer who just summed “args.Values” for “args.Key”.
 // We record Output[Key] = Value, mark that subtask done, and—if it was the last—
 // flip to phaseDone.  Then reply with the updated State.
-func (mr *MRServer) SubmitReduceResult(args ReduceResult, reply *State) error {
+func (mr *MRServer) SubmitReduceResult(args ReduceResult, reply *logs.State) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 

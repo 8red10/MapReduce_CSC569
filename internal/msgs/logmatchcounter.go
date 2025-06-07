@@ -33,7 +33,8 @@ func NewLogMatchCounter() *LogMatchCounter {
 		mu: new(sync.RWMutex),
 		LatestEntry: logs.NewLogEntry(
 			false,
-			logs.NewMapReduceData(-1),
+			// logs.NewMapReduceData(-1),
+			logs.State{},
 		),
 		Mailbox: make(map[int]bool),
 	}

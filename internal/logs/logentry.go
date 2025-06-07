@@ -1,14 +1,38 @@
 package logs
 
 type LogEntry struct {
-	Exists bool          // when reading: true if Log contains an entry, false otherwise
-	Index  int           // index of entry in Log
-	Term   int           // term entry was added to log
-	Data   MapReduceData // data of entry in Log
+	Exists bool  // when reading: true if Log contains an entry, false otherwise
+	Index  int   // index of entry in Log
+	Term   int   // term entry was added to log
+	Data   State // data of entry in Log
 	// Data   int // data of entry in Log
 }
 
-func NewLogEntry(exists bool, data MapReduceData) LogEntry {
+// State is returned (and only ever returned) from every RPC.
+// Clients log all of State’s fields to see “progress.”
+type State struct {
+	// “mapping” → still handing out map‐chunks
+	// “reducing” → still handing out reduce‐keys
+	// “done”     → everything finished
+	Status string
+
+	// How many map‐chunks remain unassigned or in‐flight?
+	MapTasksPending int
+	// How many reduce‐keys remain unassigned or in‐flight?
+	ReduceTasksPending int
+
+	// If the server just handed you a *map* task, FilePath != "" and
+	// ChunkIdx ≥ 0.  Otherwise ChunkIdx == –1 and FilePath == "".
+	FilePath string
+	ChunkIdx int
+
+	// If the server just handed you a *reduce* task, Key != "" and
+	// Values is the slice of counts to sum.  Otherwise Key == "".
+	Key    string
+	Values []int
+}
+
+func NewLogEntry(exists bool, data State) LogEntry {
 	return LogEntry{
 		Exists: exists,
 		Index:  -1,
@@ -25,11 +49,11 @@ func (le LogEntry) GetTerm() int {
 	return le.Term
 }
 
-func NewMapReduceData(data int) MapReduceData {
-	return MapReduceData{
-		Data: data,
-	}
-}
+// func NewMapReduceData(data int) MapReduceData {
+// 	return MapReduceData{
+// 		Data: data,
+// 	}
+// }
 
 func (e1 LogEntry) MatchesAndBothExist(e2 LogEntry) bool {
 	if !e1.Exists || !e2.Exists {

@@ -60,7 +60,8 @@ func NewLog() *Log {
 		Pending:   pending,
 		Waitingentry: NewLogEntry(
 			false,
-			NewMapReduceData(-1),
+			// NewMapReduceData(-1),
+			State{},
 		),
 	}
 }
@@ -69,7 +70,8 @@ func NewLog() *Log {
 func (l *Log) GetLastCommitted() LogEntry {
 	last := NewLogEntry(
 		false,
-		NewMapReduceData(-1),
+		// NewMapReduceData(-1),
+		State{},
 	)
 
 	l.mu.RLock()
@@ -165,7 +167,8 @@ func (l *Log) ClearPending() {
 	l.Pending = make([]LogEntry, 0, 10)
 	l.Waitingentry = NewLogEntry(
 		false,
-		NewMapReduceData(-1),
+		// NewMapReduceData(-1),
+		State{},
 	)
 }
 

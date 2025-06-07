@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
 	"github.com/8red10/MapReduce_CSC569/internal/mr"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
@@ -64,7 +65,7 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 		/* Create a gossip message to pass id and self table */
 		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
 		/* Get the next map task */
-		var st mr.State
+		var st logs.State
 		err := server.Call("MRServer.RequestMapTask", msg, &st)
 		if err != nil {
 			log.Printf("RequestMapTask RPC error: %v", err)
@@ -104,7 +105,7 @@ func performMap(server *rpc.Client, id int, verboseFlag bool) {
 				ChunkIdx: st.ChunkIdx,
 				KVs:      kvs,
 			}
-			var reply mr.State
+			var reply logs.State
 			err = server.Call("MRServer.SubmitMapResult", args, &reply)
 			if err != nil {
 				log.Fatalf("SubmitMapResult RPC error: %v", err)
@@ -129,7 +130,7 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 		/* Create a gossip message to pass id and self table */
 		msg := msgs.GossipMessage{Init: false, TargetID: id, Table: *memlist.Selflist}
 		/* Get the next reduce task */
-		var st mr.State
+		var st logs.State
 		err := server.Call("MRServer.RequestReduceTask", msg, &st)
 		if err != nil {
 			log.Printf("RequestReduceTask RPC error: %v", err)
@@ -161,7 +162,7 @@ func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 				Key:   st.Key,
 				Value: sum,
 			}
-			var reply mr.State
+			var reply logs.State
 			err = server.Call("MRServer.SubmitReduceResult", args, &reply)
 			if err != nil {
 				log.Fatalf("SubmitReduceResult RPC error: %v", err)

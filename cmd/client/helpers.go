@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/rpc"
 	"os"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/memlist"
@@ -51,19 +49,19 @@ func parseArgs(exit_time int) int {
 	return id
 }
 
-func createSelfNode(server *rpc.Client, id int) error {
+func createSelfNode(server *rpc.Client, id int) {
 	node.Selfnode = node.NewNode(id)
 	var self_node_response node.Node // allocate space for a response to overwrite this (var for RPC reply to be assigned)
 	err := server.Call("MemberList.Add", *node.Selfnode, &self_node_response)
 	if err != nil {
 		fmt.Println("ERROR: MemberList.Add()", err)
+		os.Exit(1)
 	} else {
 		fmt.Printf("Success: Node created with id = %d\n", id)
 	}
-	return err
 }
 
-func createSelfTable(server *rpc.Client, id int) error {
+func createSelfTable(server *rpc.Client, id int) {
 	memlist.Selflist = memlist.NewMemberList()
 	var self_node_response node.Node
 	memlist.Selflist.Add(*node.Selfnode, &self_node_response)
@@ -72,16 +70,15 @@ func createSelfTable(server *rpc.Client, id int) error {
 	err := server.Call("Requests.Add", req, &updatedEntry)
 	if err != nil {
 		fmt.Println("ERROR: Requests.Add()", err)
-		return err
+		os.Exit(1)
 	} else if updatedEntry {
 		if DEBUG_MESSAGES {
 			fmt.Printf("Success: Node %d member list added to server Requests\n", id)
 		}
 	} else if !updatedEntry {
 		fmt.Printf("Fail: Node %d member list not added to server Requests\n", id)
-		return errors.New("createSelfTable(): table not added")
+		os.Exit(1)
 	}
-	return nil
 }
 
 func createSelfLog() {
@@ -115,39 +112,39 @@ func startTimers(server *rpc.Client, id int, exit_time int) {
 	timers.StartCheckLogEntryTimer(server, node.Selfnode)
 	timers.CheckLogEntryTimer.Stop()
 
-	/* TESTING = after 50 ms, add to self log - see what happens */
-	lem := msgs.LogEntryMessage{
-		Exists: true,
-		Entry: logs.NewLogEntry(
-			true,
-			logs.NewMapReduceData(-1),
-		),
-	}
-	time.AfterFunc(
-		time.Millisecond*time.Duration(50), // after 50 ms
-		func() { msgs.SendLogEntryMessage(server, lem) },
-	)
+	// /* TESTING = after 50 ms, add to self log - see what happens */
+	// lem := msgs.LogEntryMessage{
+	// 	Exists: true,
+	// 	Entry: logs.NewLogEntry(
+	// 		true,
+	// 		logs.NewMapReduceData(-1),
+	// 	),
+	// }
+	// time.AfterFunc(
+	// 	time.Millisecond*time.Duration(50), // after 50 ms
+	// 	func() { msgs.SendLogEntryMessage(server, lem) },
+	// )
 
-	time.AfterFunc(
-		time.Millisecond*time.Duration(5000), // after 5s
-		func() { sendLEM(server, lem) },
-	)
+	// time.AfterFunc(
+	// 	time.Millisecond*time.Duration(5000), // after 5s
+	// 	func() { sendLEM(server, lem) },
+	// )
 }
 
-func sendLEM(server *rpc.Client, msg msgs.LogEntryMessage) {
-	lem := msgs.LogEntryMessage{
-		Exists: true,
-		Entry: logs.NewLogEntry(
-			true,
-			logs.NewMapReduceData(-1),
-		),
-	}
-	msgs.SendLogEntryMessage(server, lem)
-	time.AfterFunc(
-		time.Millisecond*time.Duration(5000), // after 5s
-		func() { sendLEM(server, msg) },
-	)
-}
+// func sendLEM(server *rpc.Client, msg msgs.LogEntryMessage) {
+// 	lem := msgs.LogEntryMessage{
+// 		Exists: true,
+// 		Entry: logs.NewLogEntry(
+// 			true,
+// 			logs.NewMapReduceData(-1),
+// 		),
+// 	}
+// 	msgs.SendLogEntryMessage(server, lem)
+// 	time.AfterFunc(
+// 		time.Millisecond*time.Duration(5000), // after 5s
+// 		func() { sendLEM(server, msg) },
+// 	)
+// }
 
 func runUntilFailure(id int) {
 	wg.Add(1)

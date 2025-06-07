@@ -1,21 +1,20 @@
 package main
 
 func main() {
+	id, serverAddr := parseFlags()
 	exit_time := calcExitTime() // TODO
-	server := getRPCServer()
-	id := parseArgs(exit_time)
-	if id < 0 {
-		return
-	}
-	if createSelfNode(server, id) != nil {
-		return
-	}
-	if createSelfTable(server, id) != nil {
-		return
-	}
+
+	server := getServerConnection(serverAddr)
+	defer server.Close()
+
+	createSelfNode(server, id)
+	createSelfTable(server, id)
 	createSelfLog()
 	initComplete()
+
 	createWG()
 	startTimers(server, id, exit_time)
+
+	go performMR(server, id)
 	runUntilFailure(id)
 }

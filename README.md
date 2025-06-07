@@ -7,7 +7,7 @@ A simple distributed MapReduce that counts word frequencies in a text file, usin
 
 We also utilize gossip heartbeat detection, RAFT-based leader election, and log consistency and replication for increased robustness to node failure. This project is intended to be deployed using multiple terminal windows on a single computer to simulate a real-world distributed system. To stay consistent with popular modern distributed systems, we use GoLang. 
 
-A short video demonstration of this implementation can be seen [here](youtube.com).
+A short video demonstration of this implementation can be seen [here](https://youtu.be/EyOqX1WBP5M).
 
 
 ## User Instructions

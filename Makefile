@@ -27,24 +27,24 @@ build_server:
 build_client:
 	$(GO) build -o $(CLIENT_DIR) $(CLIENT_DIR)
 
-server: build_server
+server:
 	$(SERVER_DIR)/server -file=$(FILE) -port=$(PORT)
 
-client1: build_client
+client1: 
 	$(CLIENT_DIR)/client -id=1 -server=$(SERVER) -v=$(VERBOSE)
-client2: build_client
+client2: 
 	$(CLIENT_DIR)/client -id=2 -server=$(SERVER) -v=$(VERBOSE)
-client3: build_client
+client3: 
 	$(CLIENT_DIR)/client -id=3 -server=$(SERVER) -v=$(VERBOSE)
-client4: build_client
+client4: 
 	$(CLIENT_DIR)/client -id=4 -server=$(SERVER) -v=$(VERBOSE)
-client5: build_client
+client5: 
 	$(CLIENT_DIR)/client -id=5 -server=$(SERVER) -v=$(VERBOSE)
-client6: build_client
+client6: 
 	$(CLIENT_DIR)/client -id=6 -server=$(SERVER) -v=$(VERBOSE)
-client7: build_client
+client7: 
 	$(CLIENT_DIR)/client -id=7 -server=$(SERVER) -v=$(VERBOSE)
-client8: build_client
+client8: 
 	$(CLIENT_DIR)/client -id=8 -server=$(SERVER) -v=$(VERBOSE)
 
 clean: 

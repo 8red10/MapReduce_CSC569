@@ -171,7 +171,7 @@ func checkAssignment(st *subtask, table memlist.MemberList) {
 		if !n.Alive {
 			st.Assigned = false
 			st.ID = -1
-			fmt.Printf("unassigned subtask from node %d\n", n.ID)
+			// fmt.Printf("unassigned subtask from node %d\n", n.ID)
 		}
 	}
 }

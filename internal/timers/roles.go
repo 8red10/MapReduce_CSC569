@@ -3,7 +3,6 @@ package timers
 import (
 	"fmt"
 	"net/rpc"
-	"time"
 
 	"github.com/8red10/MapReduce_CSC569/internal/logs"
 	"github.com/8red10/MapReduce_CSC569/internal/msgs"
@@ -120,17 +119,17 @@ func BecomeLeader(server *rpc.Client, selfNode *node.Node) {
 	// 	func() { LeaderStartAddLogEntryProcess(server, selfNode, entry) },
 	// )
 
-	lem := msgs.LogEntryMessage{
-		Exists: true,
-		Entry: logs.NewLogEntry(
-			true,
-			logs.NewMapReduceData(-1),
-		),
-	}
-	time.AfterFunc(
-		time.Millisecond*time.Duration(50), // after 50 ms
-		func() { msgs.SendLogEntryMessage(server, lem) },
-	)
+	// lem := msgs.LogEntryMessage{
+	// 	Exists: true,
+	// 	Entry: logs.NewLogEntry(
+	// 		true,
+	// 		logs.NewMapReduceData(-1),
+	// 	),
+	// }
+	// time.AfterFunc(
+	// 	time.Millisecond*time.Duration(50), // after 50 ms
+	// 	func() { msgs.SendLogEntryMessage(server, lem) },
+	// )
 }
 
 /* leader function, add entry to log */

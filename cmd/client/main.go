@@ -1,7 +1,7 @@
 package main
 
 func main() {
-	id, serverAddr := parseFlags()
+	id, serverAddr, verboseFlag := parseFlags()
 	exit_time := calcExitTime() // TODO
 
 	server := getServerConnection(serverAddr)
@@ -15,6 +15,6 @@ func main() {
 	createWG()
 	startTimers(server, id, exit_time)
 
-	go performMR(server, id)
+	go performMR(server, id, verboseFlag)
 	runUntilFailure(id)
 }

@@ -233,8 +233,6 @@ func (mr *MRServer) RequestMapTask(payload msgs.GossipMessage, reply *State) err
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
-	fmt.Printf("node %d in RequestMapTask\n", payload.TargetID)
-
 	// If we’ve moved on to “reducing,” just return the new status:
 	if mr.job.Phase != phaseMapping {
 		mapPending, redPending := mr.computeTaskCounts(payload.Table)

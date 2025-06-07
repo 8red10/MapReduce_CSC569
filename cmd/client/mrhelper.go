@@ -17,24 +17,33 @@ import (
 	"github.com/8red10/MapReduce_CSC569/internal/node"
 )
 
+const (
+	VERBOSE = false
+)
+
 /* Usage: client -id:<int> -server=localhost:9005 */
-func parseFlags() (int, string) {
+func parseFlags() (int, string, bool) {
 	id := flag.Int("id", -1, "node id number to split work with (within range [1,8]")
 	serverAddr := flag.String("server", "localhost:9005", "TCP hostname:port to connect to (e.g. localhost:9005)")
+	verboseFlag := flag.Bool("v", false, "verbose flag to enable log output")
 	flag.Parse()
+
+	fmt.Printf("verbose status %t\n", *verboseFlag)
+
+	time.Sleep(time.Second)
 
 	if *id < 1 || *id > node.NUM_NODES {
 		log.Printf("ID %d out of range [1,%d]\n", *id, node.NUM_NODES)
 		// log.Fatalf("Usage: client -id:<int> -server=localhost:9005") // no makefile
 		log.Fatalf("Usage: client ID:<int> SERVER=localhost:9005") // with makefile
 	}
-	log.Printf("Dialing RPC server at %s ...\n", *serverAddr)
 
-	return *id, *serverAddr
+	return *id, *serverAddr, *verboseFlag
 }
 
 /* Dial TCP connection */
 func getServerConnection(serverAddr string) *rpc.Client {
+	log.Printf("Dialing RPC server at %s ...\n", serverAddr)
 	client, err := rpc.Dial("tcp", serverAddr)
 	if err != nil {
 		log.Fatalf("Dial error: %v", err)
@@ -42,14 +51,14 @@ func getServerConnection(serverAddr string) *rpc.Client {
 	return client
 }
 
-func performMR(server *rpc.Client, id int) {
-	performMap(server, id)
-	performReduce(server, id)
+func performMR(server *rpc.Client, id int, verboseFlag bool) {
+	performMap(server, id, verboseFlag)
+	performReduce(server, id, verboseFlag)
 	printOutput(server, id)
 }
 
 /* PHASE 1: loop, keep requesting map tasks and submitting results */
-func performMap(server *rpc.Client, id int) {
+func performMap(server *rpc.Client, id int, verboseFlag bool) {
 	/* Loop: keep calling RequestMapTask until it returns Status != "mapping" or no ChunkIdx. */
 	for {
 		/* Create a gossip message to pass id and self table */
@@ -64,7 +73,9 @@ func performMap(server *rpc.Client, id int) {
 		}
 
 		/* Log whatever the server sent us */
-		fmt.Printf("[map] State=%+v\n", st)
+		if verboseFlag {
+			fmt.Printf("[map] State=%+v\n", st)
+		}
 
 		/* If we got a real chunk to process */
 		if st.Status == "mapping" && st.ChunkIdx >= 0 && st.FilePath != "" {
@@ -98,7 +109,9 @@ func performMap(server *rpc.Client, id int) {
 			if err != nil {
 				log.Fatalf("SubmitMapResult RPC error: %v", err)
 			}
-			log.Printf("[map] after SubmitMapResult → State=%+v\n", reply)
+			if verboseFlag {
+				log.Printf("[map] after SubmitMapResult → State=%+v\n", reply)
+			}
 
 			/* Continue mapping loop */
 			continue // go back to the start of the for loop
@@ -110,7 +123,7 @@ func performMap(server *rpc.Client, id int) {
 }
 
 /* PHASE 2: loop, keep requesting reduce tasks and submitting results */
-func performReduce(server *rpc.Client, id int) {
+func performReduce(server *rpc.Client, id int, verboseFlag bool) {
 	/* Loop: keep calling RequestReduceTask until it returns Status != "reducing" or key == "". */
 	for {
 		/* Create a gossip message to pass id and self table */
@@ -127,11 +140,13 @@ func performReduce(server *rpc.Client, id int) {
 		/* If we are still waiting on map tasks to finish */
 		if st.Status == "mapping" {
 			/* Go back to map and check a map task leftover from a failed node */
-			performMap(server, id)
+			performMap(server, id, verboseFlag)
 			continue // go back to the start of this for loop after checking
 		}
 
-		log.Printf("[reduce] State=%+v\n", st)
+		if verboseFlag {
+			log.Printf("[reduce] State=%+v\n", st)
+		}
 
 		/* If we got a real key to reduce */
 		if st.Status == "reducing" && st.Key != "" && len(st.Values) > 0 {
@@ -151,7 +166,9 @@ func performReduce(server *rpc.Client, id int) {
 			if err != nil {
 				log.Fatalf("SubmitReduceResult RPC error: %v", err)
 			}
-			log.Printf("[reduce] after SubmitReduceResult → State=%+v\n", reply)
+			if verboseFlag {
+				log.Printf("[reduce] after SubmitReduceResult → State=%+v\n", reply)
+			}
 
 			/* Continue reducing loop */
 			continue // go back to the start of the for loop

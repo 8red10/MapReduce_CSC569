@@ -9,7 +9,7 @@ FILE     ?= files/pg-being_ernest.txt
 PORT     ?= 9005
 ID		 ?= 1
 SERVER   ?= localhost:9005
-VERBOSE  ?= true
+VERBOSE  ?= false
 
 GO = go
 SERVER_DIR = ./cmd/server
